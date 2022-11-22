@@ -37,3 +37,19 @@ class PBCorporateClient(BaseCorporateClient):
                 return BalanceResponse(**r.json())
             else:
                 return ErrorResponse(**r.json())
+
+    def get_transactions(
+        self, acct: IBAN, start_date: date, end_date: date
+    ) -> TransactionsResponse | ErrorResponse:
+        with self.session.get(
+            self.BASE_URL + "statements/transactions/",
+            params={
+                "acc": str(acct),
+                "startDate": start_date.strftime("%d-%m-%Y"),
+                "endDate": end_date.strftime("%d-%m-%Y"),
+            },
+        ) as r:
+            if r.ok:
+                return TransactionsResponse(**r.json())
+            else:
+                return ErrorResponse(**r.json())
