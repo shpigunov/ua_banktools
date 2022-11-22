@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "ua-banktools"
+version = "0.1.0"
+description = ""
+authors = ["Anton Shpigunov <shpigunov@gmail.com>"]
+readme = "README.md"
+packages = [{include = "ua_banktools"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+schwifty = "^2022.9.0"
+requests = "^2.28.1"
+pydantic = "^1.10.2"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^22.10.0"
+ipykernel = "^6.18.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
