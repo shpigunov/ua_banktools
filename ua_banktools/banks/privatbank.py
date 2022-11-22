@@ -25,15 +25,14 @@ class PBCorporateClient(BaseCorporateClient):
     def get_balance(
         self, acct: IBAN, start_date: date, end_date: date
     ) -> BalanceResponse | ErrorResponse:
-        with self.session as s:
-            r = s.get(
-                self.BASE_URL + "statements/balance",
-                params={
-                    "acc": str(acct),
-                    "startDate": start_date.strftime("%d-%m-%Y"),
-                    "endDate": end_date.strftime("%d-%m-%Y"),
-                },
-            )
+        with self.session.get(
+            self.BASE_URL + "statements/balance",
+            params={
+                "acc": str(acct),
+                "startDate": start_date.strftime("%d-%m-%Y"),
+                "endDate": end_date.strftime("%d-%m-%Y"),
+            },
+        ) as r:
             if r.ok:
                 return BalanceResponse(**r.json())
             else:
