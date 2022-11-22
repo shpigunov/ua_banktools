@@ -1,0 +1,40 @@
+from datetime import date
+import requests
+from schwifty import IBAN
+
+from .base import BaseCorporateClient
+from .privatbank_types import *
+
+# Privatbank API Client
+class PBCorporateClient(BaseCorporateClient):
+    BASE_URL = "https://acp.privatbank.ua/api/"
+
+    def __init__(self, token: str, client_id: str) -> None:
+        self.token = token
+        self.client_id = client_id
+        self.session = requests.session()
+        self.session.headers.update(
+            {
+                "User-Agent": super().USER_AGENT,
+                "Content-Type": "application/json;charset=utf-8",
+                "id": self.client_id,
+                "token": self.token,
+            }
+        )
+
+    def get_balance(
+        self, acct: IBAN, start_date: date, end_date: date
+    ) -> BalanceResponse | ErrorResponse:
+        with self.session as s:
+            r = s.get(
+                self.BASE_URL + "statements/balance",
+                params={
+                    "acc": str(acct),
+                    "startDate": start_date.strftime("%d-%m-%Y"),
+                    "endDate": end_date.strftime("%d-%m-%Y"),
+                },
+            )
+            if r.ok:
+                return BalanceResponse(**r.json())
+            else:
+                return ErrorResponse(**r.json())
