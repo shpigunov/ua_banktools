@@ -26,6 +26,9 @@ class IPN:
 
         self.code = code
 
+    def __str__(self) -> str:
+        return self.code
+
     @property
     def inferred_dob(self) -> dt.date:
         """Перші п'ять цифр кодують дату народження власника номера — зазвичай,

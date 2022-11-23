@@ -6,7 +6,7 @@ from ua_banktools.core import IPN
 
 
 class BasePersonalClient:
-    def __init__(self) -> None:
+    def __init__(self):
         pass
 
 

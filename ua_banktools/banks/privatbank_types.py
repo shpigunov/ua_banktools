@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from pydantic import BaseModel
 
@@ -102,8 +102,51 @@ class TransactionsResponse(BaseModel):
     transactions: List[TransactionItem]
 
 
+class PaymentCreateRequest(BaseModel):
+    document_number: str
+    payer_account: str
+    recipient_account: str
+    recipient_nceo: str
+    payment_naming: str
+    payment_amount: float
+    payment_destination: str
+
+
+class PaymentData(BaseModel):
+    tabs: List[str]
+    user_id: str
+    payer_account: str
+    payer_nceo: str
+    payer_name: str
+    recipient_account: str
+    recipient_nceo: str
+    payment_naming: str
+    document_type: str
+    document_number: str
+    payment_date: str  # date
+    payment_accept_date: str  # date
+    payment_amount: float
+    payment_destination: str
+    payment_status: str  # Enum?
+    payment_ccy: Currency
+    payment_date_unix: str  # Unix Timestamp
+    level_sign: Dict[str, str]
+    internal_type: str
+    service_update_utime: str
+    source: str
+    can_edit: str
+    can_copy: Optional[str]
+
+
+class PaymentCreateSuccessResponse(BaseModel):
+    payment_data: PaymentData
+    payment_pack_ref: str
+    payment_ref: str
+
+
 class ErrorResponse(BaseModel):
     status: ResponseStatus
     code: int
     message: str
     requestId: str
+    serviceCode: Optional[str]
