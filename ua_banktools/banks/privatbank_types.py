@@ -3,6 +3,7 @@ from typing import List, Optional, Dict
 
 from pydantic import BaseModel
 
+
 # Allow arbitrary types like IBAN in requests and responses
 class Config:
     arbitrary_types_allowed = True
@@ -113,29 +114,32 @@ class PaymentCreateRequest(BaseModel):
 
 
 class PaymentData(BaseModel):
-    tabs: List[str]
-    user_id: str
-    payer_account: str
-    payer_nceo: str
-    payer_name: str
-    recipient_account: str
-    recipient_nceo: str
-    payment_naming: str
-    document_type: str
-    document_number: str
-    payment_date: str  # date
-    payment_accept_date: str  # date
-    payment_amount: float
-    payment_destination: str
-    payment_status: str  # Enum?
-    payment_ccy: Currency
-    payment_date_unix: str  # Unix Timestamp
-    level_sign: Dict[str, str]
-    internal_type: str
-    service_update_utime: str
-    source: str
     can_edit: str
     can_copy: Optional[str]
+    document_number: str
+    document_type: str
+    id: str
+    internal_type: str
+    level_sign: Dict[str, str]
+    payer_account: str
+    payer_bank_name: str
+    payer_name: str
+    payer_nceo: str
+    payment_amount: float
+    payment_ccy: Currency
+    payment_date_unix: str  # Unix Timestamp
+    payment_destination: str
+    payment_naming: str
+    payment_sign: List[str]
+    payment_status: str  # Enum?
+    payment_status_short: str
+    recipient_account: str
+    recipient_ifi_text: str
+    recipient_nceo: str
+    service_update_utime: str
+    source: str
+    tabs: List[str]
+    user_id: str
 
 
 class PaymentCreateSuccessResponse(BaseModel):

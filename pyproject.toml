@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "ua-banktools"
-version = "0.0.2"
+version = "0.0.3"
 description = ""
 authors = ["Anton Shpigunov <shpigunov@gmail.com>"]
 readme = "README.md"
 packages = [{ include = "ua_banktools" }]
 
 [tool.poetry.dependencies]
-python = ">=3.10"
+python = ">=3.10,<4"
 schwifty = "^2022.9.0"
 requests = "^2.28.1"
 pydantic = "^1.10.2"
@@ -16,6 +16,8 @@ pydantic = "^1.10.2"
 [tool.poetry.group.dev.dependencies]
 black = "^22.10.0"
 ipykernel = "^6.18.0"
+mypy = "^1.1.1"
+ruff = "^0.0.258"
 
 [build-system]
 requires = ["poetry-core"]

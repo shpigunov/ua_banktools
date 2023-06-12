@@ -1,4 +1,7 @@
 {
-  "python.formatting.provider": "black",
-  "editor.rulers": [80]
+  "python.formatting.provider": "none",
+  "editor.rulers": [80],
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  }
 }
