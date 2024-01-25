@@ -4,7 +4,14 @@ from schwifty import IBAN
 
 from ua_banktools.core import IPN
 from .base import BaseCorporateClient
-from .privatbank_types import *
+from .privatbank_types import (
+    BalanceResponse,
+    ErrorResponse,
+    TransactionsResponse,
+    PaymentCreateRequest,
+    PaymentCreateSuccessResponse,
+)
+
 
 # Privatbank API Client
 class PBCorporateClient(BaseCorporateClient):
@@ -43,7 +50,7 @@ class PBCorporateClient(BaseCorporateClient):
         self, acct: IBAN, start_date: date, end_date: date
     ) -> TransactionsResponse | ErrorResponse:
         with self.session.get(
-            self.BASE_URL + "statements/transactions/",
+            self.BASE_URL + "statements/transactions/final",
             params={
                 "acc": str(acct),
                 "startDate": start_date.strftime("%d-%m-%Y"),
