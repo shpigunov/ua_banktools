@@ -50,7 +50,7 @@ class PBCorporateClient(BaseCorporateClient):
         self, acct: IBAN, start_date: date, end_date: date
     ) -> TransactionsResponse | ErrorResponse:
         with self.session.get(
-            self.BASE_URL + "statements/transactions/final",
+            self.BASE_URL + "statements/transactions",
             params={
                 "acc": str(acct),
                 "startDate": start_date.strftime("%d-%m-%Y"),
@@ -73,7 +73,7 @@ class PBCorporateClient(BaseCorporateClient):
         document_number: str,
     ) -> PaymentCreateSuccessResponse | ErrorResponse:
         with self.session.post(
-            self.BASE_URL + "proxy/payment/create/",
+            self.BASE_URL + "proxy/payment/create",
             json=PaymentCreateRequest(
                 document_number=document_number,
                 payer_account=str(payer_acct),
