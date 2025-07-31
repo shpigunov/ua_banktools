@@ -21,14 +21,31 @@ class ResponseStatus(Enum):
     Error = "ERROR"
 
 
-class ResponseType(Enum):
+class ResponseType(str, Enum):
     Balances = "balances"
     Transactions = "transactions"
 
 
-class TransactionType(Enum):
+class TransactionType(str, Enum):
     Debit = "D"
     Credit = "C"
+
+
+class TransactionReality(str, Enum):
+    REAL = "r"
+    INTERNAL = "i"
+
+
+class TransactionStatus(str, Enum):
+    PENDING = "p"
+    REVERSED = "t"
+    COMPLETED = "r"
+    REJECTED = "n"
+
+
+class PaymentStatus(str, Enum):
+    DONE = "DONE"
+    IN_PROGRESS = "IN_PROGRESS"
 
 
 # Data classes for the Privatbank API
@@ -50,9 +67,9 @@ class BalanceItem(BaseModel):
     state: str
     atp: str
     flmn: str
-    date_open_acc_reg: str  # datetime: `dd.mm.yyyy hh:mm:ss`
-    date_open_acc_sys: str  # datetime: `dd.mm.yyyy hh:mm:ss`
-    date_close_acc: str  # datetime: `dd.mm.yyyy hh:mm:ss`
+    date_open_acc_reg: str  # datetime: `dd.mm.yyyy`
+    date_open_acc_sys: str  # datetime: `dd.mm.yyyy`
+    date_close_acc: str  # datetime: `dd.mm.yyyy`
     is_final_bal: bool
 
 
@@ -77,8 +94,8 @@ class TransactionItem(BaseModel):
     AUT_CNTR_MFO_NAME: str  # Counterpart's Bank
     AUT_CNTR_MFO_CITY: str  # Counterpart's Bank City
     CCY: Currency  # Transaction Currency
-    FL_REAL: str  # "Reality" of the transaction - {r, i}
-    PR_PR: str  # Transaction status - p-проводиться, t-сторнирована, r-проведена, n-забракована
+    FL_REAL: TransactionReality
+    PR_PR: TransactionStatus
     DOC_TYP: str  # Document type, e.g. "m"
     NUM_DOC: str  # Document number
     DAT_KL: str  # Client Date
@@ -130,7 +147,6 @@ class PaymentData(BaseModel):
     payment_date_unix: str  # Unix Timestamp
     payment_destination: str
     payment_naming: str
-    payment_sign: List[str]
     payment_status: str  # Enum?
     payment_status_short: str
     recipient_account: str
