@@ -3,8 +3,8 @@ import requests
 from schwifty import IBAN
 
 from ua_banktools.core import IPN
-from .base import BaseCorporateClient
-from .privatbank_types import (
+from ua_banktools.banks.base import BaseCorporateClient
+from .types import (
     BalanceResponse,
     ErrorResponse,
     TransactionsResponse,
