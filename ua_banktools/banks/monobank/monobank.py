@@ -11,6 +11,11 @@ from ua_banktools.banks.monobank.types import (
 
 
 class MonobankPersonalClient(BasePersonalClient):
+    """
+    Client for individual and PE (FOP) accounts.
+    Reference: https://api.monobank.ua/docs/index.html
+    """
+
     BASE_URL = "https://api.monobank.ua/"
 
     def __init__(self, token: str) -> None:
@@ -30,9 +35,6 @@ class MonobankPersonalClient(BasePersonalClient):
                 return MonobankErrorResponse(**r.json())
 
     def get_transactions(self, acct_id: str, start_date: datetime, end_date: datetime):
-        """
-        https://api.monobank.ua/personal/statement/{account}/{from}/{to}
-        """
 
         with self.session.get(
             f"{self.BASE_URL}personal/statement/{acct_id}/{round(start_date.timestamp())}/{round(end_date.timestamp())}",
