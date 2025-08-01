@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -55,7 +56,7 @@ class Transaction(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     id: str
-    time: int
+    time: datetime
     description: str
     comment: Optional[str] = None
     mcc: int
@@ -68,3 +69,7 @@ class Transaction(BaseModel):
     balance: int
     hold: bool
     receipt_id: Optional[str] = Field(None, alias="receiptId")
+
+    @field_validator("time", mode="before")
+    def _parse_time(cls, v):
+        return datetime.fromtimestamp(v)
