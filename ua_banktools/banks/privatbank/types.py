@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import List, Optional, Dict
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 # Allow arbitrary types like IBAN in requests and responses
@@ -120,6 +120,15 @@ class TransactionsResponse(BaseModel):
     transactions: List[TransactionItem]
 
 
+class TransactionSignLevel(BaseModel):
+
+    class Config:
+        validate_by_name = True
+
+    first_sign_level: Optional[bool] = Field(None, alias="1_sign_level")
+    second_sign_level: Optional[bool] = Field(None, alias="2_sign_level")
+
+
 class PaymentCreateRequest(BaseModel):
     document_number: str
     payer_account: str
@@ -137,7 +146,7 @@ class PaymentData(BaseModel):
     document_type: str
     id: str
     internal_type: str
-    level_sign: Dict[str, str]
+    level_sign: TransactionSignLevel
     payer_account: str
     payer_bank_name: str
     payer_name: str
