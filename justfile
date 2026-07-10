@@ -15,7 +15,10 @@ test suite="all":
         : "${MONO_TOKEN:?MONO_TOKEN must be set in .env}"
         MONOBANK_LIVE_TESTS=1 uv run python -m unittest discover -s tests -p 'test_monobank_live.py' -v
         ;;
-      pb|nbu)
+      pb)
+        uv run python -m unittest discover -s tests -p 'test_privatbank.py' -v
+        ;;
+      nbu)
         echo "The {{ suite }} test suite is not available yet." >&2
         exit 2
         ;;

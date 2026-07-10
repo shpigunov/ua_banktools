@@ -1,4 +1,7 @@
 from datetime import date
+from decimal import Decimal
+from typing import Optional
+
 import requests
 from schwifty import IBAN
 
@@ -6,10 +9,11 @@ from ua_banktools.core import IPN
 from ua_banktools.banks.base import BaseCorporateClient
 from .types import (
     BalanceResponse,
-    ErrorResponse,
+    PrivatbankErrorResponse,
     TransactionsResponse,
     PaymentCreateRequest,
     PaymentCreateSuccessResponse,
+    StatementParams,
 )
 
 
@@ -17,50 +21,72 @@ from .types import (
 class PBCorporateClient(BaseCorporateClient):
     BASE_URL = "https://acp.privatbank.ua/api/"
 
-    def __init__(self, token: str, client_id: str) -> None:
+    def __init__(
+        self,
+        token: str,
+        client_id: Optional[str] = None,
+        base_url: str = BASE_URL,
+    ) -> None:
         self.token = token
-        self.client_id = client_id
+        self.client_id = client_id or ""
+        self.base_url = base_url.rstrip("/") + "/"
         self.session = requests.session()
-        self.session.headers.update(
-            {
-                "User-Agent": super().USER_AGENT,
-                "Content-Type": "application/json;charset=utf-8",
-                "id": self.client_id,
-                "token": self.token,
-            }
-        )
+        headers = {
+            "User-Agent": super().USER_AGENT,
+            "Content-Type": "application/json;charset=utf-8",
+            "token": self.token,
+        }
+        if client_id is not None:
+            headers["id"] = client_id
+        self.session.headers.update(headers)
 
     def get_balance(
-        self, acct: IBAN, start_date: date, end_date: date
-    ) -> BalanceResponse | ErrorResponse:
+        self,
+        acct: Optional[IBAN],
+        start_date: date,
+        end_date: Optional[date] = None,
+        *,
+        follow_id: Optional[str] = None,
+        limit: Optional[int] = None,
+    ) -> BalanceResponse | PrivatbankErrorResponse:
+        params = StatementParams(
+            acct=acct,
+            start_date=start_date,
+            end_date=end_date,
+            follow_id=follow_id,
+            limit=limit,
+        ).to_query_params()
         with self.session.get(
-            self.BASE_URL + "statements/balance",
-            params={
-                "acc": str(acct),
-                "startDate": start_date.strftime("%d-%m-%Y"),
-                "endDate": end_date.strftime("%d-%m-%Y"),
-            },
+            self.base_url + "statements/balance",
+            params=params,
         ) as r:
             if r.ok:
                 return BalanceResponse(**r.json())
-            else:
-                return ErrorResponse(**r.json())
+            return PrivatbankErrorResponse(**r.json())
 
     def get_transactions(
-        self, acct: IBAN, start_date: date, end_date: date
-    ) -> TransactionsResponse | ErrorResponse:
+        self,
+        acct: Optional[IBAN],
+        start_date: date,
+        end_date: Optional[date] = None,
+        *,
+        follow_id: Optional[str] = None,
+        limit: Optional[int] = None,
+    ) -> TransactionsResponse | PrivatbankErrorResponse:
+        params = StatementParams(
+            acct=acct,
+            start_date=start_date,
+            end_date=end_date,
+            follow_id=follow_id,
+            limit=limit,
+        ).to_query_params()
         with self.session.get(
-            self.BASE_URL + "statements/transactions",
-            params={
-                "acc": str(acct),
-                "startDate": start_date.strftime("%d-%m-%Y"),
-                "endDate": end_date.strftime("%d-%m-%Y"),
-            },
+            self.base_url + "statements/transactions",
+            params=params,
         ) as r:
             if r.ok:
                 return TransactionsResponse(**r.json())
-            else:
-                return ErrorResponse(**r.json())
+            return PrivatbankErrorResponse(**r.json())
 
     def create_payment(
         self,
@@ -68,30 +94,37 @@ class PBCorporateClient(BaseCorporateClient):
         recipient_acct: IBAN,
         recipient_nceo: IPN | str,
         payee_name: str,
-        amount: float,
+        amount: Decimal | float,
         designation: str,
         document_number: str,
-    ) -> PaymentCreateSuccessResponse | ErrorResponse:
+    ) -> PaymentCreateSuccessResponse | PrivatbankErrorResponse:
         with self.session.post(
-            self.BASE_URL + "proxy/payment/create",
+            self.base_url + "proxy/payment/create",
             json=PaymentCreateRequest(
                 document_number=document_number,
                 payer_account=str(payer_acct),
                 recipient_account=str(recipient_acct),
                 recipient_nceo=str(recipient_nceo),
                 payment_naming=payee_name,
-                payment_amount=round(amount, 2),
+                payment_amount=f"{Decimal(str(amount)):.2f}",
                 payment_destination=designation,
-            ).dict(),
+            ).model_dump(),
         ) as r:
             if r.ok:
                 return PaymentCreateSuccessResponse(**r.json())
-            else:
-                return ErrorResponse(**r.json())
+            return PrivatbankErrorResponse(**r.json())
+
+    def delete_payment(self, payment_ref: str) -> PrivatbankErrorResponse | None:
+        with self.session.post(
+            self.base_url + "proxy/payment/delete",
+            params={"ref": payment_ref},
+        ) as r:
+            if r.ok:
+                return None
+            return PrivatbankErrorResponse(**r.json())
 
 
 """
 TODO:
 * Parse dates in responses as per template (%d-%m-%Y, etc.);
-* Publish to PyPI via Github Actions to be usable as a dependency
 """

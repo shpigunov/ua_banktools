@@ -1,3 +1,4 @@
 from .privatbank import PBCorporateClient
+from .public import ExchangeRateType, PBPublicClient
 
-__all__ = ["PBCorporateClient"]
+__all__ = ["ExchangeRateType", "PBCorporateClient", "PBPublicClient"]

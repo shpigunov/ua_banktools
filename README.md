@@ -52,3 +52,47 @@ just test mono-live
 The live test makes one client-info request and one statement request for the
 most recent hour. It is skipped by normal test runs and never changes webhook
 configuration.
+
+## PrivatBank Autoclient API
+
+```python
+from datetime import date
+from decimal import Decimal
+
+from schwifty import IBAN
+
+from ua_banktools.banks import ExchangeRateType, PBCorporateClient, PBPublicClient
+
+client = PBCorporateClient("your-token")
+public_client = PBPublicClient()
+account = IBAN("UA943052990000026100050001037")
+
+cash_rates = public_client.get_exchange_rates()
+non_cash_rates = public_client.get_exchange_rates(ExchangeRateType.NON_CASH)
+historical_rates = public_client.get_historical_exchange_rates(date(2026, 7, 1))
+balances = client.get_balance(account, date(2026, 7, 1), limit=100)
+transactions = client.get_transactions(
+    account,
+    date(2026, 7, 1),
+    date(2026, 7, 10),
+)
+payment = client.create_payment(
+    payer_acct=account,
+    recipient_acct=IBAN("UA323052990000026000000000000"),
+    recipient_nceo="14360570",
+    payee_name="Counterparty",
+    amount=Decimal("1.20"),
+    designation="Payment purpose",
+    document_number="42",
+)
+
+# Delete a created payment while it is still eligible for deletion.
+client.delete_payment(payment.payment_ref)
+```
+
+Pass `None` as the statement account to request all active accounts. If
+`exist_next_page` is true, pass the response's `next_page_id` back as
+`follow_id`. The optional `client_id` constructor argument remains available
+for legacy integrations.
+
+Run the mocked PrivatBank tests with `just test pb`.
