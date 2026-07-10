@@ -7,8 +7,8 @@ from ua_banktools.banks.monobank.types import (
     MonobankSyncResponse,
     MonobankClientResponse,
     MonobankCurrencyRate,
-    Transaction,
-    WebhookResponse,
+    MonobankTransaction,
+    MonobankWebhookResponse,
 )
 
 
@@ -116,7 +116,7 @@ class MonobankPersonalClientTests(TestCase):
 
         result = self.client.set_webhook("https://example.com/webhook")
 
-        self.assertIsInstance(result, WebhookResponse)
+        self.assertIsInstance(result, MonobankWebhookResponse)
         self.client.session.post.assert_called_once_with(
             "https://egress.example/mono/personal/webhook",
             headers={"X-Token": "secret"},
@@ -150,7 +150,7 @@ class MonobankPersonalClientTests(TestCase):
 
         result = self.client.get_statement("account-id", start)
 
-        self.assertIsInstance(result[0], Transaction)
+        self.assertIsInstance(result[0], MonobankTransaction)
         self.assertEqual(result[0].invoice_id, "invoice-id")
         self.client.session.get.assert_called_once_with(
             "https://egress.example/mono/personal/statement/account-id/1546304461",
