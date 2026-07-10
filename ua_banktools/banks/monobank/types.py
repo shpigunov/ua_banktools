@@ -108,7 +108,7 @@ class MonobankManagedClient(BaseModel):
     client_id: str = Field(..., alias="clientId")
     tin: int
     name: str
-    accounts: List[ManagedAccount]
+    accounts: List[MonobankManagedAccount]
 
 
 class MonobankClientResponse(BaseModel):

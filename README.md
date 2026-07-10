@@ -36,3 +36,19 @@ client = MonobankPersonalClient(
     base_url="https://mono-egress.example.com/mono/",
 )
 ```
+
+### Tests
+
+Run the mocked Monobank tests with `just test mono`, or all available tests with
+`just test`. An explicitly opted-in, read-only smoke test is also available:
+
+```bash
+# .env (do not commit this file!)
+MONO_TOKEN=your-personal-token
+
+just test mono-live
+```
+
+The live test makes one client-info request and one statement request for the
+most recent hour. It is skipped by normal test runs and never changes webhook
+configuration.
