@@ -4,4 +4,5 @@ ifneq (,$(wildcard ./.env))
 endif
 
 publish:
-	poetry publish --build --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD}
+	uv build
+	uv publish --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD}
