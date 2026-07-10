@@ -1,5 +1,6 @@
 from .privatbank import ExchangeRateType, PBCorporateClient, PBPublicClient
 from .monobank import MonobankPersonalClient, MonobankPublicClient
+from .nbu import NBUPublicClient, NBUSortOrder
 
 __all__ = [
     "PBCorporateClient",
@@ -7,4 +8,6 @@ __all__ = [
     "ExchangeRateType",
     "MonobankPersonalClient",
     "MonobankPublicClient",
+    "NBUPublicClient",
+    "NBUSortOrder",
 ]

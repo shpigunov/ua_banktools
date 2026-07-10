@@ -19,8 +19,7 @@ test suite="all":
         uv run python -m unittest discover -s tests -p 'test_privatbank.py' -v
         ;;
       nbu)
-        echo "The {{ suite }} test suite is not available yet." >&2
-        exit 2
+        uv run python -m unittest discover -s tests -p 'test_nbu.py' -v
         ;;
       *)
         echo "Unknown test suite '{{ suite }}'. Expected: all, mono, mono-live, pb, or nbu." >&2

@@ -6,6 +6,7 @@ A collection of Python tools and APIs for interacting with Ukrainian banks
 
 - PrivatBank (legal entities only)
 - monobank (public and personal)
+- National Bank of Ukraine (public exchange rates)
 
 ## Features
 
@@ -97,3 +98,27 @@ Pass `None` as the statement account to request all active accounts. If
 for legacy integrations.
 
 Run the mocked PrivatBank tests with `just test pb`.
+
+## National Bank of Ukraine Open Data API
+
+```python
+from datetime import date
+
+from ua_banktools.banks import NBUPublicClient, NBUSortOrder
+
+client = NBUPublicClient()
+
+current_rates = client.get_exchange_rates()
+eur_rate = client.get_exchange_rate("EUR", date(2026, 7, 1))
+usd_history = client.get_exchange_rate_history(
+    "USD",
+    date(2026, 7, 1),
+    date(2026, 7, 10),
+    order=NBUSortOrder.DESC,
+)
+```
+
+Currency and investment-metal codes are case-insensitive and normalized to
+uppercase. Rates are parsed as `Decimal` values and NBU dates as `date` values.
+The API is public and does not require authentication. Run its mocked tests with
+`just test nbu`.
