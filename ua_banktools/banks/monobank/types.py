@@ -1,8 +1,11 @@
 from datetime import datetime
 from typing import List, Optional
 
+from iso4217 import Currency
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from schwifty import IBAN
+
+from ua_banktools.core import currency_from_numeric_code
 
 
 class MonobankErrorResponse(BaseModel):
@@ -17,12 +20,17 @@ class MonobankErrorResponse(BaseModel):
 class MonobankCurrencyRate(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    currency_code_a: int = Field(..., alias="currencyCodeA")
-    currency_code_b: int = Field(..., alias="currencyCodeB")
+    currency_code_a: Currency = Field(..., alias="currencyCodeA")
+    currency_code_b: Currency = Field(..., alias="currencyCodeB")
     date: datetime
     rate_sell: Optional[float] = Field(None, alias="rateSell")
     rate_buy: Optional[float] = Field(None, alias="rateBuy")
     rate_cross: Optional[float] = Field(None, alias="rateCross")
+
+    @field_validator("currency_code_a", "currency_code_b", mode="before")
+    @classmethod
+    def _parse_currency(cls, value: object) -> Currency:
+        return currency_from_numeric_code(value)
 
     @field_validator("date", mode="before")
     @classmethod
@@ -53,13 +61,18 @@ class MonobankAccount(BaseModel):
 
     id: str
     send_id: str = Field(..., alias="sendId")
-    currency_code: int = Field(..., alias="currencyCode")
+    currency_code: Currency = Field(..., alias="currencyCode")
     cashback_type: Optional[str] = Field(None, alias="cashbackType")
     balance: int
     credit_limit: int = Field(..., alias="creditLimit")
     masked_pan: List[str] = Field(default_factory=list, alias="maskedPan")
     type: str
     iban: IBAN
+
+    @field_validator("currency_code", mode="before")
+    @classmethod
+    def _parse_currency(cls, value: object) -> Currency:
+        return currency_from_numeric_code(value)
 
     @field_validator("iban", mode="before")
     def _parse_iban(cls, v):
@@ -76,9 +89,14 @@ class Jar(BaseModel):
     send_id: str = Field(..., alias="sendId")
     title: str
     description: str
-    currency_code: int = Field(..., alias="currencyCode")
+    currency_code: Currency = Field(..., alias="currencyCode")
     balance: int
     goal: Optional[int] = None
+
+    @field_validator("currency_code", mode="before")
+    @classmethod
+    def _parse_currency(cls, value: object) -> Currency:
+        return currency_from_numeric_code(value)
 
 
 class MonobankManagedAccount(BaseModel):
@@ -91,8 +109,13 @@ class MonobankManagedAccount(BaseModel):
     balance: int
     credit_limit: int = Field(..., alias="creditLimit")
     type: str
-    currency_code: int = Field(..., alias="currencyCode")
+    currency_code: Currency = Field(..., alias="currencyCode")
     iban: IBAN
+
+    @field_validator("currency_code", mode="before")
+    @classmethod
+    def _parse_currency(cls, value: object) -> Currency:
+        return currency_from_numeric_code(value)
 
     @field_validator("iban", mode="before")
     @classmethod
@@ -138,7 +161,7 @@ class MonobankTransaction(BaseModel):
     original_mcc: int = Field(..., alias="originalMcc")
     amount: int
     operation_amount: int = Field(..., alias="operationAmount")
-    currency_code: int = Field(..., alias="currencyCode")
+    currency_code: Currency = Field(..., alias="currencyCode")
     commission_rate: int = Field(..., alias="commissionRate")
     cashback_amount: int = Field(..., alias="cashbackAmount")
     balance: int
@@ -148,6 +171,11 @@ class MonobankTransaction(BaseModel):
     counter_edrpou: Optional[str] = Field(None, alias="counterEdrpou")
     counter_iban: Optional[str] = Field(None, alias="counterIban")
     counter_name: Optional[str] = Field(None, alias="counterName")
+
+    @field_validator("currency_code", mode="before")
+    @classmethod
+    def _parse_currency(cls, value: object) -> Currency:
+        return currency_from_numeric_code(value)
 
     @field_validator("time", mode="before")
     @classmethod

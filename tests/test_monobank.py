@@ -2,6 +2,8 @@ from datetime import datetime
 from unittest import TestCase
 from unittest.mock import MagicMock
 
+from iso4217 import Currency
+
 from ua_banktools.banks.monobank import MonobankPersonalClient, MonobankPublicClient
 from ua_banktools.banks.monobank.types import (
     MonobankSyncResponse,
@@ -45,6 +47,8 @@ class MonobankPublicClientTests(TestCase):
         result = self.client.get_currency_rates()
 
         self.assertIsInstance(result[0], MonobankCurrencyRate)
+        self.assertIs(result[0].currency_code_a, Currency.USD)
+        self.assertIs(result[0].currency_code_b, Currency.UAH)
         self.client.session.get.assert_called_once_with(
             "https://egress.example/mono/bank/currency"
         )
@@ -124,6 +128,7 @@ class MonobankPersonalClientTests(TestCase):
 
         self.assertIsInstance(result, MonobankClientResponse)
         self.assertEqual(result.jars[0].send_id, "send-id")
+        self.assertIs(result.jars[0].currency_code, Currency.UAH)
         self.assertEqual(result.managed_clients[0].client_id, "managed-id")
         self.client.session.get.assert_called_once_with(
             "https://egress.example/mono/personal/client-info",
@@ -170,6 +175,7 @@ class MonobankPersonalClientTests(TestCase):
         result = self.client.get_statement("account-id", start)
 
         self.assertIsInstance(result[0], MonobankTransaction)
+        self.assertIs(result[0].currency_code, Currency.UAH)
         self.assertEqual(result[0].invoice_id, "invoice-id")
         self.client.session.get.assert_called_once_with(
             "https://egress.example/mono/personal/statement/account-id/1546304461",

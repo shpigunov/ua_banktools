@@ -104,12 +104,14 @@ Run the mocked PrivatBank tests with `just test pb`.
 ```python
 from datetime import date
 
+from iso4217 import Currency
+
 from ua_banktools.banks import NBUPublicClient, NBUSortOrder
 
 client = NBUPublicClient()
 
 current_rates = client.get_exchange_rates()
-eur_rate = client.get_exchange_rate("EUR", date(2026, 7, 1))
+eur_rate = client.get_exchange_rate(Currency.EUR, date(2026, 7, 1))
 usd_history = client.get_exchange_rate_history(
     "USD",
     date(2026, 7, 1),
@@ -119,6 +121,7 @@ usd_history = client.get_exchange_rate_history(
 ```
 
 Currency and investment-metal codes are case-insensitive and normalized to
-uppercase. Rates are parsed as `Decimal` values and NBU dates as `date` values.
+`iso4217.Currency` objects. Plain strings such as `"EUR"` are also accepted by
+client methods. Rates are parsed as `Decimal` values and NBU dates as `date` values.
 The API is public and does not require authentication. Run its mocked tests with
 `just test nbu`.

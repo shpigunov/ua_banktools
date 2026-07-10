@@ -3,6 +3,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Literal, Optional, cast
 
+from iso4217 import Currency
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
@@ -15,39 +16,25 @@ class NBUExchangeRatesRequest(BaseModel):
     """Query parameters for the NBU exchange-rate directory endpoint."""
 
     rate_date: Optional[date] = None
-    currency: Optional[str] = Field(default=None, pattern=r"^[A-Z]{3}$")
-
-    @field_validator("currency", mode="before")
-    @classmethod
-    def normalize_currency(cls, value: object) -> object:
-        if isinstance(value, str):
-            return value.upper()
-        return value
+    currency: Optional[Currency] = None
 
     def to_query_params(self) -> dict[str, str]:
         params = {"json": ""}
         if self.rate_date is not None:
             params["date"] = self.rate_date.strftime("%Y%m%d")
         if self.currency is not None:
-            params["valcode"] = self.currency
+            params["valcode"] = self.currency.code
         return params
 
 
 class NBUExchangeRateHistoryRequest(BaseModel):
     """Query parameters for a currency or metal exchange-rate history."""
 
-    currency: str = Field(pattern=r"^[A-Z]{3}$")
+    currency: Currency
     start_date: date
     end_date: date
     sort: Literal["exchangedate"] = "exchangedate"
     order: NBUSortOrder = NBUSortOrder.ASC
-
-    @field_validator("currency", mode="before")
-    @classmethod
-    def normalize_currency(cls, value: object) -> object:
-        if isinstance(value, str):
-            return value.upper()
-        return value
 
     @model_validator(mode="after")
     def validate_date_range(self):
@@ -62,7 +49,7 @@ class NBUExchangeRateHistoryRequest(BaseModel):
                 "json": "",
                 "start": self.start_date.strftime("%Y%m%d"),
                 "end": self.end_date.strftime("%Y%m%d"),
-                "valcode": self.currency,
+                "valcode": self.currency.code,
                 "sort": self.sort,
                 "order": self.order.value,
             },
@@ -77,7 +64,7 @@ class NBUExchangeRate(BaseModel):
     numeric_code: int = Field(alias="r030")
     name: str = Field(alias="txt")
     rate: Decimal
-    currency: str = Field(alias="cc")
+    currency: Currency = Field(alias="cc")
     exchange_date: date = Field(alias="exchangedate")
     special: Optional[Literal["Y", "N"]] = None
 

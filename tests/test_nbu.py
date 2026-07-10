@@ -3,6 +3,7 @@ from decimal import Decimal
 from unittest import TestCase
 from unittest.mock import MagicMock
 
+from iso4217 import Currency
 from pydantic import ValidationError
 
 from ua_banktools.banks.nbu import NBUPublicClient, NBUSortOrder
@@ -45,6 +46,8 @@ class NBUPublicClientTests(TestCase):
         self.assertIsInstance(result[0], NBUExchangeRate)
         self.assertEqual(result[0].rate, Decimal("44.495"))
         self.assertEqual(result[0].exchange_date, date(2026, 7, 13))
+        self.assertIs(result[0].currency, Currency.USD)
+        self.assertEqual(result[0].currency.number, 840)
         self.assertEqual(result[0].special, "N")
         self.client.session.get.assert_called_once_with(
             "https://egress.example/nbu/NBUStatService/v1/statdirectory/exchange",
@@ -65,10 +68,10 @@ class NBUPublicClientTests(TestCase):
             ]
         )
 
-        result = self.client.get_exchange_rate("eur", date(2020, 3, 2))
+        result = self.client.get_exchange_rate(Currency.EUR, date(2020, 3, 2))
 
         self.assertIsInstance(result, NBUExchangeRate)
-        self.assertEqual(result.currency, "EUR")
+        self.assertIs(result.currency, Currency.EUR)
         self.client.session.get.assert_called_once_with(
             "https://egress.example/nbu/NBUStatService/v1/statdirectory/exchange",
             params={"json": "", "date": "20200302", "valcode": "EUR"},
@@ -78,6 +81,12 @@ class NBUPublicClientTests(TestCase):
         self.client.session.get.return_value = self.response([])
 
         self.assertIsNone(self.client.get_exchange_rate("USD"))
+
+    def test_request_rejects_an_unknown_currency_before_sending(self):
+        with self.assertRaises(ValidationError):
+            self.client.get_exchange_rate("ZZZ")
+
+        self.client.session.get.assert_not_called()
 
     def test_get_exchange_rate_history(self):
         self.client.session.get.return_value = self.response(
@@ -106,6 +115,7 @@ class NBUPublicClientTests(TestCase):
         )
 
         self.assertIsInstance(result[0], NBUExchangeRateHistory)
+        self.assertIs(result[0].currency, Currency.USD)
         self.assertEqual(result[0].english_name, "US Dollar")
         self.assertEqual(result[0].calculation_date, date(2022, 1, 28))
         self.assertEqual(result[0].rate_per_unit, Decimal("28.7839"))

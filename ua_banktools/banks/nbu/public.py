@@ -2,6 +2,7 @@ from datetime import date
 from typing import Optional
 
 import httpx
+from iso4217 import Currency
 
 from ua_banktools.banks.base import BaseCorporateClient
 
@@ -31,7 +32,7 @@ class NBUPublicClient:
         self,
         rate_date: Optional[date] = None,
         *,
-        currency: Optional[str] = None,
+        currency: Optional[Currency | str] = None,
     ) -> list[NBUExchangeRate]:
         """Return official rates for the current day or a specified date.
 
@@ -50,7 +51,7 @@ class NBUPublicClient:
 
     def get_exchange_rate(
         self,
-        currency: str,
+        currency: Currency | str,
         rate_date: Optional[date] = None,
     ) -> Optional[NBUExchangeRate]:
         """Return one official currency/metal rate, or ``None`` if unavailable."""
@@ -59,7 +60,7 @@ class NBUPublicClient:
 
     def get_exchange_rate_history(
         self,
-        currency: str,
+        currency: Currency | str,
         start_date: date,
         end_date: date,
         *,
