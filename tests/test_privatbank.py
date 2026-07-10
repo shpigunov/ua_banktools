@@ -28,12 +28,9 @@ class PBCorporateClientTests(TestCase):
         self.account = IBAN("UA943052990000026100050001037")
 
     def response(self, payload):
-        response = MagicMock(ok=True)
+        response = MagicMock(is_success=True)
         response.json.return_value = payload
-        context = MagicMock()
-        context.__enter__.return_value = response
-        context.__exit__.return_value = False
-        return context
+        return response
 
     def test_authentication_uses_token_without_requiring_legacy_client_id(self):
         client = PBCorporateClient("secret")
@@ -174,7 +171,7 @@ class PBCorporateClientTests(TestCase):
         )
 
     def test_delete_payment_parses_error_response(self):
-        response = MagicMock(ok=False)
+        response = MagicMock(is_success=False)
         response.json.return_value = {
             "status": "ERROR",
             "code": "400",
@@ -182,10 +179,7 @@ class PBCorporateClientTests(TestCase):
             "requestId": "request-id",
             "serviceCode": "PMTMDL004",
         }
-        context = MagicMock()
-        context.__enter__.return_value = response
-        context.__exit__.return_value = False
-        self.client.session.post.return_value = context
+        self.client.session.post.return_value = response
 
         result = self.client.delete_payment("payment-ref")
 
@@ -199,12 +193,9 @@ class PBPublicClientTests(TestCase):
         self.client.session = MagicMock()
 
     def response(self, payload):
-        response = MagicMock(ok=True)
+        response = MagicMock(is_success=True)
         response.json.return_value = payload
-        context = MagicMock()
-        context.__enter__.return_value = response
-        context.__exit__.return_value = False
-        return context
+        return response
 
     def test_does_not_require_authentication(self):
         client = PBPublicClient()

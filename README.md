@@ -5,7 +5,7 @@ A collection of Python tools and APIs for interacting with Ukrainian banks
 ## Banks currently supported
 
 - PrivatBank (legal entities only)
-- monobank (personal only)
+- monobank (public and personal)
 
 ## Features
 
@@ -17,11 +17,12 @@ A collection of Python tools and APIs for interacting with Ukrainian banks
 ```python
 from datetime import datetime
 
-from ua_banktools.banks import MonobankPersonalClient
+from ua_banktools.banks import MonobankPersonalClient, MonobankPublicClient
 
+public_client = MonobankPublicClient()
 client = MonobankPersonalClient("your-token")
-client.get_currency_rates()
-client.get_bank_sync()
+public_client.get_currency_rates()
+public_client.get_bank_sync()
 client.get_client_info()
 client.set_webhook("https://example.com/monobank-webhook")
 client.get_statement("account-id", datetime(2026, 1, 1))

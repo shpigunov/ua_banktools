@@ -2,7 +2,7 @@ from datetime import datetime
 from unittest import TestCase
 from unittest.mock import MagicMock
 
-from ua_banktools.banks.monobank.monobank import MonobankPersonalClient
+from ua_banktools.banks.monobank import MonobankPersonalClient, MonobankPublicClient
 from ua_banktools.banks.monobank.types import (
     MonobankSyncResponse,
     MonobankClientResponse,
@@ -12,27 +12,21 @@ from ua_banktools.banks.monobank.types import (
 )
 
 
-class MonobankPersonalClientTests(TestCase):
+class MonobankPublicClientTests(TestCase):
     def setUp(self):
-        self.client = MonobankPersonalClient(
-            "secret",
-            base_url="https://egress.example/mono",
-        )
+        self.client = MonobankPublicClient(base_url="https://egress.example/mono")
         self.client.session = MagicMock()
 
     def response(self, payload):
-        response = MagicMock(ok=True)
+        response = MagicMock(is_success=True)
         response.json.return_value = payload
-        context = MagicMock()
-        context.__enter__.return_value = response
-        context.__exit__.return_value = False
-        return context
+        return response
 
     def test_base_url_is_normalized(self):
         self.assertEqual(self.client.base_url, "https://egress.example/mono/")
         self.assertEqual(
-            MonobankPersonalClient("secret").base_url,
-            MonobankPersonalClient.BASE_URL,
+            MonobankPublicClient().base_url,
+            MonobankPublicClient.BASE_URL,
         )
 
     def test_get_currency_rates(self):
@@ -70,6 +64,31 @@ class MonobankPersonalClientTests(TestCase):
         self.client.session.get.assert_called_once_with(
             "https://egress.example/mono/bank/sync"
         )
+
+
+class MonobankPersonalClientTests(TestCase):
+    def setUp(self):
+        self.client = MonobankPersonalClient(
+            "secret",
+            base_url="https://egress.example/mono",
+        )
+        self.client.session = MagicMock()
+
+    def response(self, payload):
+        response = MagicMock(is_success=True)
+        response.json.return_value = payload
+        return response
+
+    def test_base_url_is_normalized(self):
+        self.assertEqual(self.client.base_url, "https://egress.example/mono/")
+        self.assertEqual(
+            MonobankPersonalClient("secret").base_url,
+            MonobankPersonalClient.BASE_URL,
+        )
+
+    def test_public_operations_are_not_exposed(self):
+        self.assertFalse(hasattr(self.client, "get_currency_rates"))
+        self.assertFalse(hasattr(self.client, "get_bank_sync"))
 
     def test_get_client_info_supports_jars_and_managed_clients(self):
         self.client.session.get.return_value = self.response(

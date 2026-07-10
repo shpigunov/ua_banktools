@@ -1,7 +1,7 @@
 from datetime import date
 from enum import IntEnum
 
-import requests
+import httpx
 
 from ua_banktools.banks.base import BaseCorporateClient
 
@@ -20,8 +20,11 @@ class PBPublicClient:
 
     def __init__(self, base_url: str = BASE_URL) -> None:
         self.base_url = base_url.rstrip("/") + "/"
-        self.session = requests.session()
-        self.session.headers.update({"User-Agent": BaseCorporateClient.USER_AGENT})
+        self.session = httpx.Client(
+            headers={"User-Agent": BaseCorporateClient.USER_AGENT},
+            follow_redirects=True,
+            timeout=None,
+        )
 
     def get_exchange_rates(
         self,
@@ -31,20 +34,20 @@ class PBPublicClient:
             "exchange": "",
             "coursid": int(rate_type),
         }
-        with self.session.get(
+        r = self.session.get(
             self.base_url + "p24api/pubinfo",
             params=params,
-        ) as r:
-            r.raise_for_status()
-            return [PublicExchangeRate(**item) for item in r.json()]
+        )
+        r.raise_for_status()
+        return [PublicExchangeRate(**item) for item in r.json()]
 
     def get_historical_exchange_rates(
         self,
         rate_date: date,
     ) -> HistoricalExchangeRatesResponse:
-        with self.session.get(
+        r = self.session.get(
             self.base_url + "p24api/exchange_rates",
             params={"date": rate_date.strftime("%d.%m.%Y")},
-        ) as r:
-            r.raise_for_status()
-            return HistoricalExchangeRatesResponse(**r.json())
+        )
+        r.raise_for_status()
+        return HistoricalExchangeRatesResponse(**r.json())

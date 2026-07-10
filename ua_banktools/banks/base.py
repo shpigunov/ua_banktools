@@ -1,6 +1,6 @@
 from datetime import date
 from schwifty import IBAN
-import requests
+import httpx
 
 from ua_banktools.core import IPN
 
@@ -20,7 +20,7 @@ class BaseCorporateClient:
     def __init__(self, token: str, client_id: str = "") -> None:
         self.token = token
         self.client_id = client_id
-        self.session = requests.session()
+        self.session = httpx.Client(follow_redirects=True, timeout=None)
 
     def get_balance(self, acct: IBAN, start_date: date, end_date: date):
         pass

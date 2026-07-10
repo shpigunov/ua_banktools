@@ -2,7 +2,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Optional
 
-import requests
+import httpx
 from schwifty import IBAN
 
 from ua_banktools.core import IPN
@@ -30,7 +30,6 @@ class PBCorporateClient(BaseCorporateClient):
         self.token = token
         self.client_id = client_id or ""
         self.base_url = base_url.rstrip("/") + "/"
-        self.session = requests.session()
         headers = {
             "User-Agent": super().USER_AGENT,
             "Content-Type": "application/json;charset=utf-8",
@@ -38,7 +37,11 @@ class PBCorporateClient(BaseCorporateClient):
         }
         if client_id is not None:
             headers["id"] = client_id
-        self.session.headers.update(headers)
+        self.session = httpx.Client(
+            headers=headers,
+            follow_redirects=True,
+            timeout=None,
+        )
 
     def get_balance(
         self,
@@ -56,13 +59,13 @@ class PBCorporateClient(BaseCorporateClient):
             follow_id=follow_id,
             limit=limit,
         ).to_query_params()
-        with self.session.get(
+        r = self.session.get(
             self.base_url + "statements/balance",
             params=params,
-        ) as r:
-            if r.ok:
-                return BalanceResponse(**r.json())
-            return PrivatbankErrorResponse(**r.json())
+        )
+        if r.is_success:
+            return BalanceResponse(**r.json())
+        return PrivatbankErrorResponse(**r.json())
 
     def get_transactions(
         self,
@@ -80,13 +83,13 @@ class PBCorporateClient(BaseCorporateClient):
             follow_id=follow_id,
             limit=limit,
         ).to_query_params()
-        with self.session.get(
+        r = self.session.get(
             self.base_url + "statements/transactions",
             params=params,
-        ) as r:
-            if r.ok:
-                return TransactionsResponse(**r.json())
-            return PrivatbankErrorResponse(**r.json())
+        )
+        if r.is_success:
+            return TransactionsResponse(**r.json())
+        return PrivatbankErrorResponse(**r.json())
 
     def create_payment(
         self,
@@ -98,7 +101,7 @@ class PBCorporateClient(BaseCorporateClient):
         designation: str,
         document_number: str,
     ) -> PaymentCreateSuccessResponse | PrivatbankErrorResponse:
-        with self.session.post(
+        r = self.session.post(
             self.base_url + "proxy/payment/create",
             json=PaymentCreateRequest(
                 document_number=document_number,
@@ -109,19 +112,19 @@ class PBCorporateClient(BaseCorporateClient):
                 payment_amount=f"{Decimal(str(amount)):.2f}",
                 payment_destination=designation,
             ).model_dump(),
-        ) as r:
-            if r.ok:
-                return PaymentCreateSuccessResponse(**r.json())
-            return PrivatbankErrorResponse(**r.json())
+        )
+        if r.is_success:
+            return PaymentCreateSuccessResponse(**r.json())
+        return PrivatbankErrorResponse(**r.json())
 
     def delete_payment(self, payment_ref: str) -> PrivatbankErrorResponse | None:
-        with self.session.post(
+        r = self.session.post(
             self.base_url + "proxy/payment/delete",
             params={"ref": payment_ref},
-        ) as r:
-            if r.ok:
-                return None
-            return PrivatbankErrorResponse(**r.json())
+        )
+        if r.is_success:
+            return None
+        return PrivatbankErrorResponse(**r.json())
 
 
 """

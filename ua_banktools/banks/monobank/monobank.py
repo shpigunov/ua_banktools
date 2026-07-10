@@ -1,13 +1,11 @@
 from datetime import datetime
 from typing import Optional
 
-import requests
+import httpx
 
 from ua_banktools.banks.base import BasePersonalClient
 from ua_banktools.banks.monobank.types import (
-    MonobankSyncResponse,
     MonobankClientResponse,
-    MonobankCurrencyRate,
     MonobankErrorResponse,
     MonobankTransaction,
     MonobankWebhookResponse,
@@ -25,7 +23,7 @@ class MonobankPersonalClient(BasePersonalClient):
     def __init__(self, token: str, base_url: str = BASE_URL) -> None:
         self.token = token
         self.base_url = base_url.rstrip("/") + "/"
-        self.session = requests.session()
+        self.session = httpx.Client(follow_redirects=True, timeout=None)
 
     @property
     def _auth_headers(self) -> dict[str, str]:
@@ -34,39 +32,25 @@ class MonobankPersonalClient(BasePersonalClient):
     def _url(self, path: str) -> str:
         return self.base_url + path.lstrip("/")
 
-    def get_currency_rates(self):
-        """Return Monobank exchange rates, cached upstream for five minutes."""
-        with self.session.get(self._url("bank/currency")) as r:
-            if r.ok:
-                return [MonobankCurrencyRate(**item) for item in r.json()]
-            return MonobankErrorResponse(**r.json())
-
-    def get_bank_sync(self):
-        """Return the bank public key metadata and server time."""
-        with self.session.get(self._url("bank/sync")) as r:
-            if r.ok:
-                return MonobankSyncResponse(**r.json())
-            return MonobankErrorResponse(**r.json())
-
     def get_client_info(self):
-        with self.session.get(
+        r = self.session.get(
             self._url("personal/client-info"),
             headers=self._auth_headers,
-        ) as r:
-            if r.ok:
-                return MonobankClientResponse(**r.json())
-            return MonobankErrorResponse(**r.json())
+        )
+        if r.is_success:
+            return MonobankClientResponse(**r.json())
+        return MonobankErrorResponse(**r.json())
 
     def set_webhook(self, webhook_url: str):
         """Set or remove the statement webhook (pass an empty URL to remove it)."""
-        with self.session.post(
+        r = self.session.post(
             self._url("personal/webhook"),
             headers=self._auth_headers,
             json={"webHookUrl": webhook_url},
-        ) as r:
-            if r.ok:
-                return MonobankWebhookResponse(**r.json())
-            return MonobankErrorResponse(**r.json())
+        )
+        if r.is_success:
+            return MonobankWebhookResponse(**r.json())
+        return MonobankErrorResponse(**r.json())
 
     def get_statement(
         self,
@@ -78,13 +62,13 @@ class MonobankPersonalClient(BasePersonalClient):
         if end_date is not None:
             path += f"/{round(end_date.timestamp())}"
 
-        with self.session.get(
+        r = self.session.get(
             self._url(path),
             headers=self._auth_headers,
-        ) as r:
-            if r.ok:
-                return [MonobankTransaction(**item) for item in r.json()]
-            return MonobankErrorResponse(**r.json())
+        )
+        if r.is_success:
+            return [MonobankTransaction(**item) for item in r.json()]
+        return MonobankErrorResponse(**r.json())
 
     def get_transactions(
         self,
