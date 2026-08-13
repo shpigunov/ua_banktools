@@ -1,6 +1,7 @@
+import re
 from datetime import date
 from decimal import Decimal
-from typing import Optional
+from typing import List, Optional
 
 import httpx
 from schwifty import IBAN
@@ -8,13 +9,24 @@ from schwifty import IBAN
 from ua_banktools.core import IPN
 from ua_banktools.banks.base import BaseCorporateClient, build_session, parse_error
 from .types import (
+    BalanceItem,
     BalanceResponse,
     PrivatbankErrorResponse,
+    TransactionItem,
     TransactionsResponse,
     PaymentCreateRequest,
     PaymentCreateSuccessResponse,
     StatementParams,
 )
+
+#: Page size used when walking a statement. The API caps ``limit`` at 500, but a
+#: smaller page keeps each request (and each cache entry behind a proxy) modest.
+DEFAULT_PAGE_SIZE = 100
+
+#: Refuse to walk forever if the API keeps advertising another page.
+MAX_PAGES = 100
+
+_FOLLOW_ID_RE = re.compile(r"^[A-Za-z0-9_=:-]{1,128}$")
 
 
 # Privatbank API Client
@@ -95,6 +107,103 @@ class PBCorporateClient(BaseCorporateClient):
         if r.is_success:
             return TransactionsResponse(**r.json())
         return parse_error(r, PrivatbankErrorResponse)
+
+    def get_all_transactions(
+        self,
+        acct: Optional[IBAN],
+        start_date: date,
+        end_date: Optional[date] = None,
+        *,
+        limit: int = DEFAULT_PAGE_SIZE,
+        max_pages: int = MAX_PAGES,
+    ) -> List[TransactionItem] | PrivatbankErrorResponse:
+        """Return every transaction in a range, following pagination to the end.
+
+        :meth:`get_transactions` returns one page and leaves ``follow_id`` to the
+        caller; this walks the whole statement.
+        """
+        pages = self._walk_pages(
+            self.get_transactions,
+            acct,
+            start_date,
+            end_date,
+            limit=limit,
+            max_pages=max_pages,
+        )
+        if isinstance(pages, PrivatbankErrorResponse):
+            return pages
+        return [item for page in pages for item in page.transactions]
+
+    def get_all_balances(
+        self,
+        acct: Optional[IBAN],
+        start_date: date,
+        end_date: Optional[date] = None,
+        *,
+        limit: int = DEFAULT_PAGE_SIZE,
+        max_pages: int = MAX_PAGES,
+    ) -> List[BalanceItem] | PrivatbankErrorResponse:
+        """Return every balance row in a range, following pagination to the end."""
+        pages = self._walk_pages(
+            self.get_balance,
+            acct,
+            start_date,
+            end_date,
+            limit=limit,
+            max_pages=max_pages,
+        )
+        if isinstance(pages, PrivatbankErrorResponse):
+            return pages
+        return [item for page in pages for item in page.balances]
+
+    def _walk_pages(
+        self,
+        fetch,
+        acct: Optional[IBAN],
+        start_date: date,
+        end_date: Optional[date],
+        *,
+        limit: int,
+        max_pages: int,
+    ):
+        """Follow ``next_page_id`` until the API stops advertising another page.
+
+        The guards matter because ``follow_id`` comes back from the API and drives
+        the next request: a repeated or malformed id would otherwise loop forever
+        or forward junk upstream.
+        """
+        pages = []
+        seen_follow_ids: set[str] = set()
+        follow_id: Optional[str] = None
+
+        for _ in range(max_pages):
+            page = fetch(
+                acct,
+                start_date,
+                end_date,
+                follow_id=follow_id,
+                limit=limit,
+            )
+            if isinstance(page, PrivatbankErrorResponse):
+                return page
+            pages.append(page)
+
+            if not page.exist_next_page:
+                return pages
+
+            next_page_id = (page.next_page_id or "").strip()
+            if not next_page_id:
+                raise ValueError(
+                    "PrivatBank advertised another page without a next_page_id"
+                )
+            if not _FOLLOW_ID_RE.match(next_page_id):
+                raise ValueError("PrivatBank returned a malformed next_page_id")
+            if next_page_id in seen_follow_ids:
+                raise ValueError("PrivatBank repeated a next_page_id")
+            seen_follow_ids.add(next_page_id)
+            follow_id = next_page_id
+
+        raise ValueError(f"PrivatBank statement exceeded {max_pages} pages")
 
     def create_payment(
         self,
