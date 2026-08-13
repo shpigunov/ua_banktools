@@ -28,3 +28,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["ua_banktools"]
+
+[tool.ty.environment]
+# Local stub overrides; see stubs/iso4217/__init__.pyi for why.
+extra-paths = ["stubs"]

@@ -3,7 +3,7 @@ from typing import Optional
 
 import httpx
 
-from ua_banktools.banks.base import BasePersonalClient
+from ua_banktools.banks.base import BasePersonalClient, build_session, parse_error
 from ua_banktools.banks.monobank.types import (
     MonobankClientResponse,
     MonobankErrorResponse,
@@ -20,10 +20,15 @@ class MonobankPersonalClient(BasePersonalClient):
 
     BASE_URL = "https://api.monobank.ua/"
 
-    def __init__(self, token: str, base_url: str = BASE_URL) -> None:
+    def __init__(
+        self,
+        token: str,
+        base_url: str = BASE_URL,
+        session: Optional[httpx.Client] = None,
+    ) -> None:
         self.token = token
         self.base_url = base_url.rstrip("/") + "/"
-        self.session = httpx.Client(follow_redirects=True, timeout=None)
+        self.session = build_session(session)
 
     @property
     def _auth_headers(self) -> dict[str, str]:
@@ -39,7 +44,7 @@ class MonobankPersonalClient(BasePersonalClient):
         )
         if r.is_success:
             return MonobankClientResponse(**r.json())
-        return MonobankErrorResponse(**r.json())
+        return parse_error(r, MonobankErrorResponse)
 
     def set_webhook(self, webhook_url: str):
         """Set or remove the statement webhook (pass an empty URL to remove it)."""
@@ -50,7 +55,7 @@ class MonobankPersonalClient(BasePersonalClient):
         )
         if r.is_success:
             return MonobankWebhookResponse(**r.json())
-        return MonobankErrorResponse(**r.json())
+        return parse_error(r, MonobankErrorResponse)
 
     def get_statement(
         self,
@@ -68,7 +73,7 @@ class MonobankPersonalClient(BasePersonalClient):
         )
         if r.is_success:
             return [MonobankTransaction(**item) for item in r.json()]
-        return MonobankErrorResponse(**r.json())
+        return parse_error(r, MonobankErrorResponse)
 
     def get_transactions(
         self,

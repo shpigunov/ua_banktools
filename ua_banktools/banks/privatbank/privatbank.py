@@ -6,7 +6,7 @@ import httpx
 from schwifty import IBAN
 
 from ua_banktools.core import IPN
-from ua_banktools.banks.base import BaseCorporateClient
+from ua_banktools.banks.base import BaseCorporateClient, build_session, parse_error
 from .types import (
     BalanceResponse,
     PrivatbankErrorResponse,
@@ -26,22 +26,25 @@ class PBCorporateClient(BaseCorporateClient):
         token: str,
         client_id: Optional[str] = None,
         base_url: str = BASE_URL,
+        session: Optional[httpx.Client] = None,
     ) -> None:
         self.token = token
         self.client_id = client_id or ""
         self.base_url = base_url.rstrip("/") + "/"
+        self._send_client_id = client_id is not None
+        self.session = build_session(session)
+
+    @property
+    def _auth_headers(self) -> dict[str, str]:
+        """Auth sent per request, so an injected session stays the caller's."""
         headers = {
-            "User-Agent": super().USER_AGENT,
+            "User-Agent": BaseCorporateClient.USER_AGENT,
             "Content-Type": "application/json;charset=utf-8",
             "token": self.token,
         }
-        if client_id is not None:
-            headers["id"] = client_id
-        self.session = httpx.Client(
-            headers=headers,
-            follow_redirects=True,
-            timeout=None,
-        )
+        if self._send_client_id:
+            headers["id"] = self.client_id
+        return headers
 
     def get_balance(
         self,
@@ -62,10 +65,11 @@ class PBCorporateClient(BaseCorporateClient):
         r = self.session.get(
             self.base_url + "statements/balance",
             params=params,
+            headers=self._auth_headers,
         )
         if r.is_success:
             return BalanceResponse(**r.json())
-        return PrivatbankErrorResponse(**r.json())
+        return parse_error(r, PrivatbankErrorResponse)
 
     def get_transactions(
         self,
@@ -86,10 +90,11 @@ class PBCorporateClient(BaseCorporateClient):
         r = self.session.get(
             self.base_url + "statements/transactions",
             params=params,
+            headers=self._auth_headers,
         )
         if r.is_success:
             return TransactionsResponse(**r.json())
-        return PrivatbankErrorResponse(**r.json())
+        return parse_error(r, PrivatbankErrorResponse)
 
     def create_payment(
         self,
@@ -103,6 +108,7 @@ class PBCorporateClient(BaseCorporateClient):
     ) -> PaymentCreateSuccessResponse | PrivatbankErrorResponse:
         r = self.session.post(
             self.base_url + "proxy/payment/create",
+            headers=self._auth_headers,
             json=PaymentCreateRequest(
                 document_number=document_number,
                 payer_account=str(payer_acct),
@@ -115,16 +121,17 @@ class PBCorporateClient(BaseCorporateClient):
         )
         if r.is_success:
             return PaymentCreateSuccessResponse(**r.json())
-        return PrivatbankErrorResponse(**r.json())
+        return parse_error(r, PrivatbankErrorResponse)
 
     def delete_payment(self, payment_ref: str) -> PrivatbankErrorResponse | None:
         r = self.session.post(
             self.base_url + "proxy/payment/delete",
+            headers=self._auth_headers,
             params={"ref": payment_ref},
         )
         if r.is_success:
             return None
-        return PrivatbankErrorResponse(**r.json())
+        return parse_error(r, PrivatbankErrorResponse)
 
 
 """

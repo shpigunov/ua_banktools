@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from iso4217 import Currency
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 from schwifty import IBAN
 
 from ua_banktools.core import currency_from_numeric_code
@@ -31,6 +31,10 @@ class MonobankCurrencyRate(BaseModel):
     @classmethod
     def _parse_currency(cls, value: object) -> Currency:
         return currency_from_numeric_code(value)
+
+    @field_serializer("currency_code_a", "currency_code_b")
+    def _dump_currency(self, value: Currency) -> str:
+        return value.code
 
     @field_validator("date", mode="before")
     @classmethod
@@ -74,12 +78,20 @@ class MonobankAccount(BaseModel):
     def _parse_currency(cls, value: object) -> Currency:
         return currency_from_numeric_code(value)
 
+    @field_serializer("currency_code")
+    def _dump_currency(self, value: Currency) -> str:
+        return value.code
+
     @field_validator("iban", mode="before")
     def _parse_iban(cls, v):
         # if we got a string, turn it into an IBAN object
         if isinstance(v, str):
             return IBAN(v)  # raises if invalid
         return v  # already an IBAN
+
+    @field_serializer("iban")
+    def _dump_iban(self, value: IBAN) -> str:
+        return str(value)
 
 
 class Jar(BaseModel):
@@ -97,6 +109,10 @@ class Jar(BaseModel):
     @classmethod
     def _parse_currency(cls, value: object) -> Currency:
         return currency_from_numeric_code(value)
+
+    @field_serializer("currency_code")
+    def _dump_currency(self, value: Currency) -> str:
+        return value.code
 
 
 class MonobankManagedAccount(BaseModel):
@@ -117,12 +133,20 @@ class MonobankManagedAccount(BaseModel):
     def _parse_currency(cls, value: object) -> Currency:
         return currency_from_numeric_code(value)
 
+    @field_serializer("currency_code")
+    def _dump_currency(self, value: Currency) -> str:
+        return value.code
+
     @field_validator("iban", mode="before")
     @classmethod
     def _parse_iban(cls, value):
         if isinstance(value, str):
             return IBAN(value)
         return value
+
+    @field_serializer("iban")
+    def _dump_iban(self, value: IBAN) -> str:
+        return str(value)
 
 
 class MonobankManagedClient(BaseModel):
@@ -176,6 +200,10 @@ class MonobankTransaction(BaseModel):
     @classmethod
     def _parse_currency(cls, value: object) -> Currency:
         return currency_from_numeric_code(value)
+
+    @field_serializer("currency_code")
+    def _dump_currency(self, value: Currency) -> str:
+        return value.code
 
     @field_validator("time", mode="before")
     @classmethod

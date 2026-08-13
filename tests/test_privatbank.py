@@ -24,7 +24,8 @@ class PBCorporateClientTests(TestCase):
             "secret",
             base_url="https://egress.example/privat",
         )
-        self.client.session = MagicMock()
+        self.session = MagicMock()
+        self.client.session = self.session
         self.account = IBAN("UA943052990000026100050001037")
 
     def response(self, payload):
@@ -35,11 +36,12 @@ class PBCorporateClientTests(TestCase):
     def test_authentication_uses_token_without_requiring_legacy_client_id(self):
         client = PBCorporateClient("secret")
 
-        self.assertEqual(client.session.headers["token"], "secret")
-        self.assertNotIn("id", client.session.headers)
+        # Auth travels per request so an injected session stays the caller's.
+        self.assertEqual(client._auth_headers["token"], "secret")
+        self.assertNotIn("id", client._auth_headers)
 
     def test_get_balance_supports_optional_filters_and_pagination(self):
-        self.client.session.get.return_value = self.response(
+        self.session.get.return_value = self.response(
             {
                 "status": "SUCCESS",
                 "type": "balances",
@@ -56,9 +58,12 @@ class PBCorporateClientTests(TestCase):
             limit=100,
         )
 
+        # assertIsInstance reports a good failure message; the plain assert is
+        # what narrows the union for the type checker. Both fail on a bad value.
         self.assertIsInstance(result, BalanceResponse)
+        assert isinstance(result, BalanceResponse)
         self.assertEqual(result.next_page_id, "next-balance-page")
-        self.client.session.get.assert_called_once_with(
+        self.session.get.assert_called_once_with(
             "https://egress.example/privat/statements/balance",
             params={
                 "acc": str(self.account),
@@ -66,10 +71,11 @@ class PBCorporateClientTests(TestCase):
                 "followId": "current-page",
                 "limit": 100,
             },
+            headers=self.client._auth_headers,
         )
 
     def test_get_transactions_allows_all_accounts_and_new_fields(self):
-        self.client.session.get.return_value = self.response(
+        self.session.get.return_value = self.response(
             {
                 "status": "SUCCESS",
                 "type": "transactions",
@@ -116,11 +122,13 @@ class PBCorporateClientTests(TestCase):
         result = self.client.get_transactions(None, date(2026, 7, 1))
 
         self.assertIsInstance(result, TransactionsResponse)
+        assert isinstance(result, TransactionsResponse)
         self.assertEqual(result.transactions[0].STRUCT_CODE, "101")
         self.assertIsNone(result.transactions[0].DLR)
-        self.client.session.get.assert_called_once_with(
+        self.session.get.assert_called_once_with(
             "https://egress.example/privat/statements/transactions",
             params={"startDate": "01-07-2026"},
+            headers=self.client._auth_headers,
         )
 
     def test_statement_limit_is_validated_by_request_model(self):
@@ -128,7 +136,7 @@ class PBCorporateClientTests(TestCase):
             self.client.get_balance(self.account, date(2026, 7, 1), limit=501)
 
     def test_create_payment_uses_string_amount_and_current_response_schema(self):
-        self.client.session.post.return_value = self.response(
+        self.session.post.return_value = self.response(
             {
                 "payment_ref": "payment-ref",
                 "payment_pack_ref": "payment-pack-ref",
@@ -146,8 +154,9 @@ class PBCorporateClientTests(TestCase):
         )
 
         self.assertIsInstance(result, PaymentCreateSuccessResponse)
-        self.client.session.post.assert_called_once_with(
+        self.session.post.assert_called_once_with(
             "https://egress.example/privat/proxy/payment/create",
+            headers=self.client._auth_headers,
             json={
                 "document_number": "42",
                 "payer_account": str(self.account),
@@ -160,13 +169,14 @@ class PBCorporateClientTests(TestCase):
         )
 
     def test_delete_payment_posts_reference_without_a_body(self):
-        self.client.session.post.return_value = self.response(None)
+        self.session.post.return_value = self.response(None)
 
         result = self.client.delete_payment("payment-ref")
 
         self.assertIsNone(result)
-        self.client.session.post.assert_called_once_with(
+        self.session.post.assert_called_once_with(
             "https://egress.example/privat/proxy/payment/delete",
+            headers=self.client._auth_headers,
             params={"ref": "payment-ref"},
         )
 
@@ -179,18 +189,20 @@ class PBCorporateClientTests(TestCase):
             "requestId": "request-id",
             "serviceCode": "PMTMDL004",
         }
-        self.client.session.post.return_value = response
+        self.session.post.return_value = response
 
         result = self.client.delete_payment("payment-ref")
 
         self.assertIsInstance(result, PrivatbankErrorResponse)
+        assert isinstance(result, PrivatbankErrorResponse)
         self.assertEqual(result.serviceCode, "PMTMDL004")
 
 
 class PBPublicClientTests(TestCase):
     def setUp(self):
         self.client = PBPublicClient(base_url="https://egress.example/public")
-        self.client.session = MagicMock()
+        self.session = MagicMock()
+        self.client.session = self.session
 
     def response(self, payload):
         response = MagicMock(is_success=True)
@@ -204,7 +216,7 @@ class PBPublicClientTests(TestCase):
         self.assertNotIn("id", client.session.headers)
 
     def test_get_exchange_rates_supports_cash_and_non_cash_rates(self):
-        self.client.session.get.return_value = self.response(
+        self.session.get.return_value = self.response(
             [
                 {
                     "ccy": "USD",
@@ -220,13 +232,14 @@ class PBPublicClientTests(TestCase):
         self.assertIsInstance(result[0], PublicExchangeRate)
         self.assertEqual(result[0].currency, "USD")
         self.assertEqual(result[0].buy, Decimal("41.10000"))
-        self.client.session.get.assert_called_once_with(
+        self.session.get.assert_called_once_with(
             "https://egress.example/public/p24api/pubinfo",
             params={"exchange": "", "coursid": 11},
+            headers=self.client._headers,
         )
 
     def test_get_historical_exchange_rates(self):
-        self.client.session.get.return_value = self.response(
+        self.session.get.return_value = self.response(
             {
                 "date": "01.07.2026",
                 "bank": "PB",
@@ -257,7 +270,8 @@ class PBPublicClientTests(TestCase):
         self.assertEqual(result.date, date(2026, 7, 1))
         self.assertEqual(result.exchange_rates[0].sale_rate, Decimal("41.7"))
         self.assertIsNone(result.exchange_rates[1].sale_rate)
-        self.client.session.get.assert_called_once_with(
+        self.session.get.assert_called_once_with(
             "https://egress.example/public/p24api/exchange_rates",
             params={"date": "01.07.2026"},
+            headers=self.client._headers,
         )

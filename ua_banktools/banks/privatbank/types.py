@@ -195,8 +195,7 @@ class TransactionsResponse(BaseModel):
 
 
 class TransactionSignLevel(BaseModel):
-    class Config:
-        validate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
     first_sign_level: Optional[bool] = Field(None, alias="1_sign_level")
     second_sign_level: Optional[bool] = Field(None, alias="2_sign_level")

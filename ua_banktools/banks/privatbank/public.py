@@ -1,9 +1,10 @@
 from datetime import date
 from enum import IntEnum
+from typing import Optional
 
 import httpx
 
-from ua_banktools.banks.base import BaseCorporateClient
+from ua_banktools.banks.base import BaseCorporateClient, build_session
 
 from .types import HistoricalExchangeRatesResponse, PublicExchangeRate
 
@@ -18,13 +19,17 @@ class PBPublicClient:
 
     BASE_URL = "https://api.privatbank.ua/"
 
-    def __init__(self, base_url: str = BASE_URL) -> None:
+    def __init__(
+        self,
+        base_url: str = BASE_URL,
+        session: Optional[httpx.Client] = None,
+    ) -> None:
         self.base_url = base_url.rstrip("/") + "/"
-        self.session = httpx.Client(
-            headers={"User-Agent": BaseCorporateClient.USER_AGENT},
-            follow_redirects=True,
-            timeout=None,
-        )
+        self.session = build_session(session)
+
+    @property
+    def _headers(self) -> dict[str, str]:
+        return {"User-Agent": BaseCorporateClient.USER_AGENT}
 
     def get_exchange_rates(
         self,
@@ -37,6 +42,7 @@ class PBPublicClient:
         r = self.session.get(
             self.base_url + "p24api/pubinfo",
             params=params,
+            headers=self._headers,
         )
         r.raise_for_status()
         return [PublicExchangeRate(**item) for item in r.json()]
@@ -48,6 +54,7 @@ class PBPublicClient:
         r = self.session.get(
             self.base_url + "p24api/exchange_rates",
             params={"date": rate_date.strftime("%d.%m.%Y")},
+            headers=self._headers,
         )
         r.raise_for_status()
         return HistoricalExchangeRatesResponse(**r.json())

@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Literal, Optional, cast
+from typing import Literal, Optional
 
 from iso4217 import Currency
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -43,17 +43,14 @@ class NBUExchangeRateHistoryRequest(BaseModel):
         return self
 
     def to_query_params(self) -> dict[str, str]:
-        return cast(
-            dict[str, str],
-            {
-                "json": "",
-                "start": self.start_date.strftime("%Y%m%d"),
-                "end": self.end_date.strftime("%Y%m%d"),
-                "valcode": self.currency.code,
-                "sort": self.sort,
-                "order": self.order.value,
-            },
-        )
+        return {
+            "json": "",
+            "start": self.start_date.strftime("%Y%m%d"),
+            "end": self.end_date.strftime("%Y%m%d"),
+            "valcode": self.currency.code,
+            "sort": self.sort,
+            "order": self.order.value,
+        }
 
 
 class NBUExchangeRate(BaseModel):

@@ -17,7 +17,8 @@ from ua_banktools.banks.monobank.types import (
 class MonobankPublicClientTests(TestCase):
     def setUp(self):
         self.client = MonobankPublicClient(base_url="https://egress.example/mono")
-        self.client.session = MagicMock()
+        self.session = MagicMock()
+        self.client.session = self.session
 
     def response(self, payload):
         response = MagicMock(is_success=True)
@@ -32,7 +33,7 @@ class MonobankPublicClientTests(TestCase):
         )
 
     def test_get_currency_rates(self):
-        self.client.session.get.return_value = self.response(
+        self.session.get.return_value = self.response(
             [
                 {
                     "currencyCodeA": 840,
@@ -49,12 +50,12 @@ class MonobankPublicClientTests(TestCase):
         self.assertIsInstance(result[0], MonobankCurrencyRate)
         self.assertIs(result[0].currency_code_a, Currency.USD)
         self.assertIs(result[0].currency_code_b, Currency.UAH)
-        self.client.session.get.assert_called_once_with(
+        self.session.get.assert_called_once_with(
             "https://egress.example/mono/bank/currency"
         )
 
     def test_get_bank_sync(self):
-        self.client.session.get.return_value = self.response(
+        self.session.get.return_value = self.response(
             {
                 "serverKeyId": "key-id",
                 "serverPubKey": "public-key",
@@ -65,7 +66,7 @@ class MonobankPublicClientTests(TestCase):
         result = self.client.get_bank_sync()
 
         self.assertIsInstance(result, MonobankSyncResponse)
-        self.client.session.get.assert_called_once_with(
+        self.session.get.assert_called_once_with(
             "https://egress.example/mono/bank/sync"
         )
 
@@ -76,7 +77,8 @@ class MonobankPersonalClientTests(TestCase):
             "secret",
             base_url="https://egress.example/mono",
         )
-        self.client.session = MagicMock()
+        self.session = MagicMock()
+        self.client.session = self.session
 
     def response(self, payload):
         response = MagicMock(is_success=True)
@@ -95,7 +97,7 @@ class MonobankPersonalClientTests(TestCase):
         self.assertFalse(hasattr(self.client, "get_bank_sync"))
 
     def test_get_client_info_supports_jars_and_managed_clients(self):
-        self.client.session.get.return_value = self.response(
+        self.session.get.return_value = self.response(
             {
                 "clientId": "client-id",
                 "name": "Test Client",
@@ -130,25 +132,25 @@ class MonobankPersonalClientTests(TestCase):
         self.assertEqual(result.jars[0].send_id, "send-id")
         self.assertIs(result.jars[0].currency_code, Currency.UAH)
         self.assertEqual(result.managed_clients[0].client_id, "managed-id")
-        self.client.session.get.assert_called_once_with(
+        self.session.get.assert_called_once_with(
             "https://egress.example/mono/personal/client-info",
             headers={"X-Token": "secret"},
         )
 
     def test_set_webhook(self):
-        self.client.session.post.return_value = self.response({"status": "ok"})
+        self.session.post.return_value = self.response({"status": "ok"})
 
         result = self.client.set_webhook("https://example.com/webhook")
 
         self.assertIsInstance(result, MonobankWebhookResponse)
-        self.client.session.post.assert_called_once_with(
+        self.session.post.assert_called_once_with(
             "https://egress.example/mono/personal/webhook",
             headers={"X-Token": "secret"},
             json={"webHookUrl": "https://example.com/webhook"},
         )
 
     def test_get_statement_supports_optional_to_and_counterparty_fields(self):
-        self.client.session.get.return_value = self.response(
+        self.session.get.return_value = self.response(
             [
                 {
                     "id": "transaction-id",
@@ -177,7 +179,7 @@ class MonobankPersonalClientTests(TestCase):
         self.assertIsInstance(result[0], MonobankTransaction)
         self.assertIs(result[0].currency_code, Currency.UAH)
         self.assertEqual(result[0].invoice_id, "invoice-id")
-        self.client.session.get.assert_called_once_with(
+        self.session.get.assert_called_once_with(
             "https://egress.example/mono/personal/statement/account-id/1546304461",
             headers={"X-Token": "secret"},
         )

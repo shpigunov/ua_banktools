@@ -4,7 +4,8 @@ from typing import Optional
 import httpx
 from iso4217 import Currency
 
-from ua_banktools.banks.base import BaseCorporateClient
+from ua_banktools.banks.base import BaseCorporateClient, build_session
+from ua_banktools.core import currency_from_numeric_code
 
 from .types import (
     NBUExchangeRate,
@@ -20,13 +21,17 @@ class NBUPublicClient:
 
     BASE_URL = "https://bank.gov.ua/"
 
-    def __init__(self, base_url: str = BASE_URL) -> None:
+    def __init__(
+        self,
+        base_url: str = BASE_URL,
+        session: Optional[httpx.Client] = None,
+    ) -> None:
         self.base_url = base_url.rstrip("/") + "/"
-        self.session = httpx.Client(
-            headers={"User-Agent": BaseCorporateClient.USER_AGENT},
-            follow_redirects=True,
-            timeout=None,
-        )
+        self.session = build_session(session)
+
+    @property
+    def _headers(self) -> dict[str, str]:
+        return {"User-Agent": BaseCorporateClient.USER_AGENT}
 
     def get_exchange_rates(
         self,
@@ -40,11 +45,14 @@ class NBUPublicClient:
         """
         params = NBUExchangeRatesRequest(
             rate_date=rate_date,
-            currency=currency,
+            # Normalize here rather than in the model, so the public API can keep
+            # accepting a plain "EUR" while the request stays strictly typed.
+            currency=None if currency is None else currency_from_numeric_code(currency),
         ).to_query_params()
         response = self.session.get(
             self.base_url + "NBUStatService/v1/statdirectory/exchange",
             params=params,
+            headers=self._headers,
         )
         response.raise_for_status()
         return [NBUExchangeRate(**item) for item in response.json()]
@@ -68,7 +76,7 @@ class NBUPublicClient:
     ) -> list[NBUExchangeRateHistory]:
         """Return official rates for one currency or metal over a date range."""
         params = NBUExchangeRateHistoryRequest(
-            currency=currency,
+            currency=currency_from_numeric_code(currency),
             start_date=start_date,
             end_date=end_date,
             order=order,
@@ -76,6 +84,7 @@ class NBUPublicClient:
         response = self.session.get(
             self.base_url + "NBU_Exchange/exchange_site",
             params=params,
+            headers=self._headers,
         )
         response.raise_for_status()
         return [NBUExchangeRateHistory(**item) for item in response.json()]

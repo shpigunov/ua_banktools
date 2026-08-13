@@ -30,3 +30,12 @@ test suite="all":
 publish:
     uv build
     uv publish --username "$PYPI_USERNAME" --password "$PYPI_PASSWORD"
+
+lint:
+    uv run ruff check . --fix
+    uv run ty check .
+
+# Regenerate stubs/iso4217/__init__.pyi from the installed package.
+# Run after bumping iso4217; the member list tracks its table.xml.
+stubs:
+    uv run python scripts/generate_iso4217_stub.py

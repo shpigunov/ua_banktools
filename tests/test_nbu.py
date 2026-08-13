@@ -16,7 +16,8 @@ from ua_banktools.banks.nbu.types import (
 class NBUPublicClientTests(TestCase):
     def setUp(self):
         self.client = NBUPublicClient(base_url="https://egress.example/nbu")
-        self.client.session = MagicMock()
+        self.session = MagicMock()
+        self.client.session = self.session
 
     def response(self, payload):
         response = MagicMock()
@@ -28,7 +29,7 @@ class NBUPublicClientTests(TestCase):
         self.assertEqual(NBUPublicClient().base_url, NBUPublicClient.BASE_URL)
 
     def test_get_current_exchange_rates(self):
-        self.client.session.get.return_value = self.response(
+        self.session.get.return_value = self.response(
             [
                 {
                     "r030": 840,
@@ -49,13 +50,14 @@ class NBUPublicClientTests(TestCase):
         self.assertIs(result[0].currency, Currency.USD)
         self.assertEqual(result[0].currency.number, 840)
         self.assertEqual(result[0].special, "N")
-        self.client.session.get.assert_called_once_with(
+        self.session.get.assert_called_once_with(
             "https://egress.example/nbu/NBUStatService/v1/statdirectory/exchange",
             params={"json": ""},
+            headers=self.client._headers,
         )
 
     def test_get_exchange_rate_for_date_normalizes_currency(self):
-        self.client.session.get.return_value = self.response(
+        self.session.get.return_value = self.response(
             [
                 {
                     "r030": 978,
@@ -70,26 +72,33 @@ class NBUPublicClientTests(TestCase):
 
         result = self.client.get_exchange_rate(Currency.EUR, date(2020, 3, 2))
 
+        # assertIsInstance reports a good failure message; the plain assert is
+        # what narrows the union for the type checker. Both fail on a bad value.
         self.assertIsInstance(result, NBUExchangeRate)
+        assert isinstance(result, NBUExchangeRate)
         self.assertIs(result.currency, Currency.EUR)
-        self.client.session.get.assert_called_once_with(
+        self.session.get.assert_called_once_with(
             "https://egress.example/nbu/NBUStatService/v1/statdirectory/exchange",
             params={"json": "", "date": "20200302", "valcode": "EUR"},
+            headers=self.client._headers,
         )
 
     def test_get_exchange_rate_returns_none_for_an_empty_response(self):
-        self.client.session.get.return_value = self.response([])
+        self.session.get.return_value = self.response([])
 
         self.assertIsNone(self.client.get_exchange_rate("USD"))
 
     def test_request_rejects_an_unknown_currency_before_sending(self):
-        with self.assertRaises(ValidationError):
+        # ValueError, not ValidationError: the currency is normalized in the
+        # client before the request model is built. What matters is that nothing
+        # reaches the network, not which layer refused it.
+        with self.assertRaises(ValueError):
             self.client.get_exchange_rate("ZZZ")
 
-        self.client.session.get.assert_not_called()
+        self.session.get.assert_not_called()
 
     def test_get_exchange_rate_history(self):
-        self.client.session.get.return_value = self.response(
+        self.session.get.return_value = self.response(
             [
                 {
                     "exchangedate": "31.01.2022",
@@ -119,7 +128,7 @@ class NBUPublicClientTests(TestCase):
         self.assertEqual(result[0].english_name, "US Dollar")
         self.assertEqual(result[0].calculation_date, date(2022, 1, 28))
         self.assertEqual(result[0].rate_per_unit, Decimal("28.7839"))
-        self.client.session.get.assert_called_once_with(
+        self.session.get.assert_called_once_with(
             "https://egress.example/nbu/NBU_Exchange/exchange_site",
             params={
                 "json": "",
@@ -129,6 +138,7 @@ class NBUPublicClientTests(TestCase):
                 "sort": "exchangedate",
                 "order": "desc",
             },
+            headers=self.client._headers,
         )
 
     def test_history_rejects_an_inverted_date_range(self):
@@ -142,12 +152,12 @@ class NBUPublicClientTests(TestCase):
                 date(2022, 1, 31),
             )
 
-        self.client.session.get.assert_not_called()
+        self.session.get.assert_not_called()
 
     def test_http_errors_are_raised(self):
         response = self.response({"error": "unavailable"})
         response.raise_for_status.side_effect = RuntimeError("request failed")
-        self.client.session.get.return_value = response
+        self.session.get.return_value = response
 
         with self.assertRaisesRegex(RuntimeError, "request failed"):
             self.client.get_exchange_rates()
