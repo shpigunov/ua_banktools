@@ -31,14 +31,15 @@ class IPN:
 
     def __repr__(self) -> str:
         return f"IPN: {self.code}"
-    
+
     def __eq__(self, other: object) -> bool:
         if isinstance(other, IPN):
             return self.code == other.code
         if isinstance(other, str):
             return self.code == other
-        raise NotImplementedError(f"Cannot compare IPN with {type(other)}")
-    
+        # Not raise: ``ipn == None`` and ``ipn in mixed_list`` must just be False.
+        return NotImplemented
+
     def __hash__(self) -> int:
         return hash(self.code)
 
