@@ -27,9 +27,19 @@ test suite="all":
         ;;
     esac
 
-publish:
-    uv build
-    uv publish --username "$PYPI_USERNAME" --password "$PYPI_PASSWORD"
+# Releases are published by .github/workflows/python-publish.yml when a GitHub
+# release is published: Trusted Publishing with PEP 740 attestations. There is
+# deliberately no local publish -- an unattested upload is indistinguishable
+# from one made with a stolen token.
+
+# Audit uv.lock for known vulnerabilities (OSV), as the CI audit does.
+# The ignored tornado advisories are fixed only in 6.6, which dropped Python
+# 3.10; they hit the dev-only 3.10 branch. Keep in sync with audit.yml.
+audit:
+    uv audit --locked --preview-features audit-command \
+        --ignore GHSA-pcg2-g6cj-q92c \
+        --ignore GHSA-pw9p-v7r6-gx4p \
+        --ignore GHSA-r4j5-9xpp-3985
 
 lint:
     uv run ruff check . --fix
