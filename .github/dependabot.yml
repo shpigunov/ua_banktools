@@ -17,6 +17,11 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    # This is a library: pyproject ranges are what users' resolvers see, so
+    # they must stay wide. Only touch them when a release falls outside the
+    # range (e.g. a new major); otherwise update uv.lock alone. The default
+    # strategy raised floors and pinned schwifty to a single version.
+    versioning-strategy: increase-if-necessary
     cooldown:
       default-days: 7
     groups:
