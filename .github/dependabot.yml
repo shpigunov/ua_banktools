@@ -1,0 +1,26 @@
+version: 2
+updates:
+  # Keeps the SHA-pinned actions current; the version comment is updated too.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    # Let a freshly published release age a week before adopting it, so a
+    # compromised version is likely caught and yanked first.
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      dev:
+        dependency-type: development
+      runtime:
+        dependency-type: production
