@@ -31,7 +31,10 @@ class MonobankPersonalClientLiveTests(TestCase):
     def _call_redacted(self, operation, callback):
         try:
             return callback()
-        except Exception as error:
+        # Deliberately blind: any exception, a ValidationError above all, can
+        # echo response data (balances, IBANs, names) into the test output.
+        # ``from None`` drops that context; ``self.fail`` here would keep it.
+        except Exception as error:  # noqa: BLE001
             raise AssertionError(
                 f"{operation} raised {type(error).__name__}; response data redacted"
             ) from None
@@ -42,13 +45,11 @@ class MonobankPersonalClientLiveTests(TestCase):
             self.client.get_client_info,
         )
         if isinstance(client_info, MonobankErrorResponse):
-            raise AssertionError(
-                f"get_client_info was rejected: {client_info.error_description}"
-            ) from None
+            self.fail(f"get_client_info was rejected: {client_info.error_description}")
         if not isinstance(client_info, MonobankClientResponse):
-            raise AssertionError(
+            self.fail(
                 f"get_client_info returned unexpected {type(client_info).__name__}"
-            ) from None
+            )
         if not client_info.accounts:
             self.skipTest("the Monobank account has no statement-capable accounts")
 
@@ -63,12 +64,8 @@ class MonobankPersonalClientLiveTests(TestCase):
             ),
         )
         if isinstance(statement, MonobankErrorResponse):
-            raise AssertionError(
-                f"get_statement was rejected: {statement.error_description}"
-            ) from None
+            self.fail(f"get_statement was rejected: {statement.error_description}")
         if not isinstance(statement, list):
-            raise AssertionError(
-                f"get_statement returned unexpected {type(statement).__name__}"
-            ) from None
+            self.fail(f"get_statement returned unexpected {type(statement).__name__}")
         if not all(isinstance(item, MonobankTransaction) for item in statement):
-            raise AssertionError("get_statement returned an unexpected item type")
+            self.fail("get_statement returned an unexpected item type")
