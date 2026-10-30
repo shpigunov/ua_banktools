@@ -1,7 +1,7 @@
 import datetime as dt
 
 
-class IPNValidationError(Exception):
+class IPNValidationError(ValueError):
     pass
 
 
