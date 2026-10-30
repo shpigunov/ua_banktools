@@ -35,6 +35,9 @@ lint:
     uv run ruff check . --fix
     uv run ty check .
 
+format:
+    uv run ruff format .
+
 # Regenerate stubs/iso4217/__init__.pyi from the installed package.
 # Run after bumping iso4217; the member list tracks its table.xml.
 stubs:
