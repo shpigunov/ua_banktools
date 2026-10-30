@@ -182,8 +182,9 @@ class TransactionItem(BaseModel):
     RECIPIENT_ULTMT_DOCUMENT: Optional[str] = None
     RECIPIENT_ULTMT_NAME: Optional[str] = None
     RECIPIENT_ULTMT_COUNTRY_CODE: Optional[str] = None
-    STRUCT_CODE: Optional[str] = None
-    STRUCT_TYPE: Optional[str] = None
+    STRUCT_CODE: Optional[str] = None  # Tax payment type code
+    STRUCT_TYPE: Optional[str] = None  # Budget classification code
+    STRUCT_CATEGORY: Optional[str] = None  # Tax notice (decision) details
 
 
 class TransactionsResponse(BaseModel):

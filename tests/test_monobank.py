@@ -3,15 +3,18 @@ from unittest import TestCase
 from unittest.mock import MagicMock
 
 from iso4217 import Currency
+from pydantic import ValidationError
 
 from ua_banktools.banks.monobank import MonobankPersonalClient, MonobankPublicClient
 from ua_banktools.banks.monobank.types import (
+    MonobankErrorResponse,
     MonobankSyncResponse,
     MonobankClientResponse,
     MonobankCurrencyRate,
     MonobankTransaction,
     MonobankWebhookResponse,
 )
+from ua_banktools.core import IPN
 
 
 class MonobankPublicClientTests(TestCase):
@@ -53,6 +56,63 @@ class MonobankPublicClientTests(TestCase):
         self.session.get.assert_called_once_with(
             "https://egress.example/mono/bank/currency"
         )
+
+    def test_get_currency_rates_survives_withdrawn_iso_codes(self):
+        # Monobank still quotes BGN (975), which left ISO 4217 when Bulgaria
+        # adopted the euro; one such row must not sink the whole response.
+        self.session.get.return_value = self.response(
+            [
+                {
+                    "currencyCodeA": 840,
+                    "currencyCodeB": 980,
+                    "date": 1,
+                    "rateBuy": 41.1,
+                },
+                {
+                    "currencyCodeA": 975,
+                    "currencyCodeB": 980,
+                    "date": 1,
+                    "rateCross": 24.7,
+                },
+            ]
+        )
+
+        result = self.client.get_currency_rates()
+
+        self.assertEqual(len(result), 1)
+        self.assertIs(result[0].currency_code_a, Currency.USD)
+
+    def test_get_currency_rates_still_raises_on_other_malformed_rows(self):
+        # Only withdrawn currencies are skipped; anything else is API drift.
+        self.session.get.return_value = self.response(
+            [
+                {
+                    "currencyCodeA": 840,
+                    "currencyCodeB": 980,
+                    "date": 1,
+                    "rateBuy": 41.1,
+                },
+                {
+                    "currencyCodeA": 978,
+                    "currencyCodeB": 980,
+                    "rateBuy": 48.0,
+                },
+            ]
+        )
+
+        with self.assertRaises(ValidationError):
+            self.client.get_currency_rates()
+
+    def test_rate_limit_error_uses_the_public_error_shape(self):
+        response = MagicMock(is_success=False, status_code=429)
+        response.json.return_value = {"errCode": "TMR", "errText": "Too many requests"}
+        self.session.get.return_value = response
+
+        result = self.client.get_currency_rates()
+
+        self.assertIsInstance(result, MonobankErrorResponse)
+        self.assertEqual(result.error_description, "Too many requests")
+        self.assertEqual(result.error_code, "TMR")
 
     def test_get_bank_sync(self):
         self.session.get.return_value = self.response(
@@ -118,10 +178,17 @@ class MonobankPersonalClientTests(TestCase):
                 "managedClients": [
                     {
                         "clientId": "managed-id",
-                        "tin": 1234567890,
+                        "tin": "3123456789",
                         "name": "Managed Client",
                         "accounts": [],
-                    }
+                    },
+                    {
+                        # Fails the IPN checksum, as passport-registered FOPs do.
+                        "clientId": "passport-id",
+                        "tin": "0123456789",
+                        "name": "Passport Client",
+                        "accounts": [],
+                    },
                 ],
             }
         )
@@ -132,6 +199,15 @@ class MonobankPersonalClientTests(TestCase):
         self.assertEqual(result.jars[0].send_id, "send-id")
         self.assertIs(result.jars[0].currency_code, Currency.UAH)
         self.assertEqual(result.managed_clients[0].client_id, "managed-id")
+        self.assertIsInstance(result.managed_clients[0].tin, IPN)
+        self.assertEqual(result.managed_clients[0].tin, "3123456789")
+        self.assertEqual(result.managed_clients[1].tin, "0123456789")
+        self.assertNotIsInstance(result.managed_clients[1].tin, IPN)
+
+        dumped = result.model_dump(mode="json")
+        self.assertEqual(dumped["managed_clients"][0]["tin"], "3123456789")
+        restored = MonobankClientResponse.model_validate(dumped)
+        self.assertIsInstance(restored.managed_clients[0].tin, IPN)
         self.session.get.assert_called_once_with(
             "https://egress.example/mono/personal/client-info",
             headers={"X-Token": "secret"},

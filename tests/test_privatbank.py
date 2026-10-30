@@ -114,6 +114,7 @@ class PBCorporateClientTests(TestCase):
                         "UETR": "b23aeadc-1ab7-4c34-a005-0f005a059948",
                         "STRUCT_CODE": "101",
                         "STRUCT_TYPE": "22080000",
+                        "STRUCT_CATEGORY": "Tax notice 42",
                     }
                 ],
             }
@@ -124,6 +125,7 @@ class PBCorporateClientTests(TestCase):
         self.assertIsInstance(result, TransactionsResponse)
         assert isinstance(result, TransactionsResponse)
         self.assertEqual(result.transactions[0].STRUCT_CODE, "101")
+        self.assertEqual(result.transactions[0].STRUCT_CATEGORY, "Tax notice 42")
         self.assertIsNone(result.transactions[0].DLR)
         self.session.get.assert_called_once_with(
             "https://egress.example/privat/statements/transactions",

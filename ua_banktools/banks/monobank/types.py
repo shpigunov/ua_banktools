@@ -2,10 +2,18 @@ from datetime import datetime
 from typing import List, Optional
 
 from iso4217 import Currency
-from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_serializer,
+    field_validator,
+)
 from schwifty import IBAN
 
-from ua_banktools.core import currency_from_numeric_code
+from ua_banktools.core import IPN, currency_from_numeric_code
+from ua_banktools.core.ipn import IPNValidationError
 
 
 class MonobankErrorResponse(BaseModel):
@@ -14,7 +22,18 @@ class MonobankErrorResponse(BaseModel):
         populate_by_name=True,
     )
 
-    error_description: str = Field(..., alias="errorDescription")
+    # The personal API documents ``errorDescription``; the public endpoints
+    # answer rate limiting with ``{"errCode": "TMR", "errText": ...}`` instead.
+    error_description: str = Field(
+        ...,
+        validation_alias=AliasChoices("errorDescription", "errText"),
+        serialization_alias="errorDescription",
+    )
+    error_code: str | None = Field(
+        None,
+        validation_alias="errCode",
+        serialization_alias="errCode",
+    )
 
 
 class MonobankCurrencyRate(BaseModel):
@@ -150,12 +169,35 @@ class MonobankManagedAccount(BaseModel):
 
 
 class MonobankManagedClient(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        populate_by_name=True,
+    )
 
     client_id: str = Field(..., alias="clientId")
-    tin: int
+    # Managed clients are FOPs, so this is normally an IPN. It stays a plain
+    # string when it is not one -- a FOP who declined a tax number registers
+    # with passport details instead -- rather than failing the whole response.
+    tin: IPN | str
     name: str
     accounts: List[MonobankManagedAccount]
+
+    @field_validator("tin", mode="before")
+    @classmethod
+    def _parse_tin(cls, value: object) -> object:
+        # A string in the spec, but tolerate the integer form older responses
+        # (and older dumps) used. Never compare as int: IPNs can start with 0.
+        if not isinstance(value, (str, int)):
+            return value  # an IPN already, or junk for pydantic to reject
+        code = str(value)
+        try:
+            return IPN(code)
+        except IPNValidationError:
+            return code
+
+    @field_serializer("tin")
+    def _dump_tin(self, value: IPN | str) -> str:
+        return str(value)
 
 
 class MonobankClientResponse(BaseModel):
