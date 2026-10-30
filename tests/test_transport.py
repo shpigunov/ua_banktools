@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 
 import httpx
 
-from ua_banktools.banks import BankTransportError, DEFAULT_TIMEOUT
+from ua_banktools.banks import DEFAULT_TIMEOUT, BankTransportError
 from ua_banktools.banks.monobank import MonobankPersonalClient, MonobankPublicClient
 from ua_banktools.banks.monobank.types import (
     Jar,

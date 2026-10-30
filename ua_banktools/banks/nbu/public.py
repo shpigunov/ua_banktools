@@ -1,5 +1,4 @@
 from datetime import date
-from typing import Optional
 
 import httpx
 from iso4217 import Currency
@@ -24,7 +23,7 @@ class NBUPublicClient:
     def __init__(
         self,
         base_url: str = BASE_URL,
-        session: Optional[httpx.Client] = None,
+        session: httpx.Client | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/") + "/"
         self.session = build_session(session)
@@ -35,9 +34,9 @@ class NBUPublicClient:
 
     def get_exchange_rates(
         self,
-        rate_date: Optional[date] = None,
+        rate_date: date | None = None,
         *,
-        currency: Optional[Currency | str] = None,
+        currency: Currency | str | None = None,
     ) -> list[NBUExchangeRate]:
         """Return official rates for the current day or a specified date.
 
@@ -60,8 +59,8 @@ class NBUPublicClient:
     def get_exchange_rate(
         self,
         currency: Currency | str,
-        rate_date: Optional[date] = None,
-    ) -> Optional[NBUExchangeRate]:
+        rate_date: date | None = None,
+    ) -> NBUExchangeRate | None:
         """Return one official currency/metal rate, or ``None`` if unavailable."""
         rates = self.get_exchange_rates(rate_date, currency=currency)
         return rates[0] if rates else None

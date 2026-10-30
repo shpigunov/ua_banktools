@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Literal, Optional
+from typing import Literal
 
 from iso4217 import Currency
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -15,8 +15,8 @@ class NBUSortOrder(str, Enum):
 class NBUExchangeRatesRequest(BaseModel):
     """Query parameters for the NBU exchange-rate directory endpoint."""
 
-    rate_date: Optional[date] = None
-    currency: Optional[Currency] = None
+    rate_date: date | None = None
+    currency: Currency | None = None
 
     def to_query_params(self) -> dict[str, str]:
         params = {"json": ""}
@@ -63,7 +63,7 @@ class NBUExchangeRate(BaseModel):
     rate: Decimal
     currency: Currency = Field(alias="cc")
     exchange_date: date = Field(alias="exchangedate")
-    special: Optional[Literal["Y", "N"]] = None
+    special: Literal["Y", "N"] | None = None
 
     @field_validator("exchange_date", mode="before")
     @classmethod

@@ -1,22 +1,22 @@
 import re
 from datetime import date
 from decimal import Decimal
-from typing import List, Optional
 
 import httpx
 from schwifty import IBAN
 
-from ua_banktools.core import IPN
 from ua_banktools.banks.base import BaseCorporateClient, build_session, parse_error
+from ua_banktools.core import IPN
+
 from .types import (
     BalanceItem,
     BalanceResponse,
-    PrivatbankErrorResponse,
-    TransactionItem,
-    TransactionsResponse,
     PaymentCreateRequest,
     PaymentCreateSuccessResponse,
+    PrivatbankErrorResponse,
     StatementParams,
+    TransactionItem,
+    TransactionsResponse,
 )
 
 #: Page size used when walking a statement. The API caps ``limit`` at 500, but a
@@ -36,9 +36,9 @@ class PBCorporateClient(BaseCorporateClient):
     def __init__(
         self,
         token: str,
-        client_id: Optional[str] = None,
+        client_id: str | None = None,
         base_url: str = BASE_URL,
-        session: Optional[httpx.Client] = None,
+        session: httpx.Client | None = None,
     ) -> None:
         self.token = token
         self.client_id = client_id or ""
@@ -60,12 +60,12 @@ class PBCorporateClient(BaseCorporateClient):
 
     def get_balance(
         self,
-        acct: Optional[IBAN],
+        acct: IBAN | None,
         start_date: date,
-        end_date: Optional[date] = None,
+        end_date: date | None = None,
         *,
-        follow_id: Optional[str] = None,
-        limit: Optional[int] = None,
+        follow_id: str | None = None,
+        limit: int | None = None,
     ) -> BalanceResponse | PrivatbankErrorResponse:
         params = StatementParams(
             acct=acct,
@@ -85,12 +85,12 @@ class PBCorporateClient(BaseCorporateClient):
 
     def get_transactions(
         self,
-        acct: Optional[IBAN],
+        acct: IBAN | None,
         start_date: date,
-        end_date: Optional[date] = None,
+        end_date: date | None = None,
         *,
-        follow_id: Optional[str] = None,
-        limit: Optional[int] = None,
+        follow_id: str | None = None,
+        limit: int | None = None,
     ) -> TransactionsResponse | PrivatbankErrorResponse:
         params = StatementParams(
             acct=acct,
@@ -110,13 +110,13 @@ class PBCorporateClient(BaseCorporateClient):
 
     def get_all_transactions(
         self,
-        acct: Optional[IBAN],
+        acct: IBAN | None,
         start_date: date,
-        end_date: Optional[date] = None,
+        end_date: date | None = None,
         *,
         limit: int = DEFAULT_PAGE_SIZE,
         max_pages: int = MAX_PAGES,
-    ) -> List[TransactionItem] | PrivatbankErrorResponse:
+    ) -> list[TransactionItem] | PrivatbankErrorResponse:
         """Return every transaction in a range, following pagination to the end.
 
         :meth:`get_transactions` returns one page and leaves ``follow_id`` to the
@@ -136,13 +136,13 @@ class PBCorporateClient(BaseCorporateClient):
 
     def get_all_balances(
         self,
-        acct: Optional[IBAN],
+        acct: IBAN | None,
         start_date: date,
-        end_date: Optional[date] = None,
+        end_date: date | None = None,
         *,
         limit: int = DEFAULT_PAGE_SIZE,
         max_pages: int = MAX_PAGES,
-    ) -> List[BalanceItem] | PrivatbankErrorResponse:
+    ) -> list[BalanceItem] | PrivatbankErrorResponse:
         """Return every balance row in a range, following pagination to the end."""
         pages = self._walk_pages(
             self.get_balance,
@@ -159,9 +159,9 @@ class PBCorporateClient(BaseCorporateClient):
     def _walk_pages(
         self,
         fetch,
-        acct: Optional[IBAN],
+        acct: IBAN | None,
         start_date: date,
-        end_date: Optional[date],
+        end_date: date | None,
         *,
         limit: int,
         max_pages: int,
@@ -174,7 +174,7 @@ class PBCorporateClient(BaseCorporateClient):
         """
         pages = []
         seen_follow_ids: set[str] = set()
-        follow_id: Optional[str] = None
+        follow_id: str | None = None
 
         for _ in range(max_pages):
             page = fetch(

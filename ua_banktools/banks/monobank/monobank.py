@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import List, Optional
 
 import httpx
 
@@ -27,7 +26,7 @@ class MonobankPersonalClient(BasePersonalClient):
         self,
         token: str,
         base_url: str = BASE_URL,
-        session: Optional[httpx.Client] = None,
+        session: httpx.Client | None = None,
     ) -> None:
         self.token = token
         self.base_url = base_url.rstrip("/") + "/"
@@ -64,7 +63,7 @@ class MonobankPersonalClient(BasePersonalClient):
         self,
         acct_id: str,
         start_date: datetime,
-        end_date: Optional[datetime] = None,
+        end_date: datetime | None = None,
     ):
         """Return one statement window.
 
@@ -87,7 +86,7 @@ class MonobankPersonalClient(BasePersonalClient):
         self,
         acct_id: str,
         start_date: datetime,
-        end_date: Optional[datetime] = None,
+        end_date: datetime | None = None,
     ):
         """Backward-compatible alias for :meth:`get_statement`."""
         return self.get_statement(acct_id, start_date, end_date)
@@ -96,8 +95,8 @@ class MonobankPersonalClient(BasePersonalClient):
         self,
         acct_id: str,
         start_date: datetime,
-        end_date: Optional[datetime] = None,
-    ) -> List[MonobankTransaction] | MonobankErrorResponse:
+        end_date: datetime | None = None,
+    ) -> list[MonobankTransaction] | MonobankErrorResponse:
         """Return every transaction in a range, splitting it into legal windows.
 
         Monobank caps a statement request at 31 days plus one hour, so a longer
@@ -118,7 +117,7 @@ class MonobankPersonalClient(BasePersonalClient):
         if end_ts < start_ts:
             raise ValueError("end_date must not be before start_date")
 
-        transactions: List[MonobankTransaction] = []
+        transactions: list[MonobankTransaction] = []
         window_start = start_ts
         while window_start <= end_ts:
             window_end = min(window_start + MAX_STATEMENT_RANGE_SECONDS, end_ts)

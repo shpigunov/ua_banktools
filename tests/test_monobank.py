@@ -7,10 +7,10 @@ from pydantic import ValidationError
 
 from ua_banktools.banks.monobank import MonobankPersonalClient, MonobankPublicClient
 from ua_banktools.banks.monobank.types import (
-    MonobankErrorResponse,
-    MonobankSyncResponse,
     MonobankClientResponse,
     MonobankCurrencyRate,
+    MonobankErrorResponse,
+    MonobankSyncResponse,
     MonobankTransaction,
     MonobankWebhookResponse,
 )

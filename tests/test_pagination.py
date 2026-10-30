@@ -5,6 +5,7 @@ Both banks make the caller do the walking -- PrivatBank hands back a
 These helpers exist so every consumer does not reimplement the loop.
 """
 
+import itertools
 from datetime import date, datetime
 from unittest import TestCase
 from unittest.mock import MagicMock
@@ -258,7 +259,7 @@ class MonobankWindowSplittingTests(TestCase):
             ],
         )
         # Windows must not overlap or leave gaps, or transactions are lost.
-        for (_, prev_end), (next_start, _) in zip(windows, windows[1:]):
+        for (_, prev_end), (next_start, _) in itertools.pairwise(windows):
             self.assertEqual(next_start, prev_end + 1)
         for start, stop in windows:
             self.assertLessEqual(stop - start, MAX_STATEMENT_RANGE_SECONDS)

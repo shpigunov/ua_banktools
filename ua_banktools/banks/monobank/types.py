@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import List, Optional
 
 from iso4217 import Currency
 from pydantic import (
@@ -42,9 +41,9 @@ class MonobankCurrencyRate(BaseModel):
     currency_code_a: Currency = Field(..., alias="currencyCodeA")
     currency_code_b: Currency = Field(..., alias="currencyCodeB")
     date: datetime
-    rate_sell: Optional[float] = Field(None, alias="rateSell")
-    rate_buy: Optional[float] = Field(None, alias="rateBuy")
-    rate_cross: Optional[float] = Field(None, alias="rateCross")
+    rate_sell: float | None = Field(None, alias="rateSell")
+    rate_buy: float | None = Field(None, alias="rateBuy")
+    rate_cross: float | None = Field(None, alias="rateCross")
 
     @field_validator("currency_code_a", "currency_code_b", mode="before")
     @classmethod
@@ -85,10 +84,10 @@ class MonobankAccount(BaseModel):
     id: str
     send_id: str = Field(..., alias="sendId")
     currency_code: Currency = Field(..., alias="currencyCode")
-    cashback_type: Optional[str] = Field(None, alias="cashbackType")
+    cashback_type: str | None = Field(None, alias="cashbackType")
     balance: int
     credit_limit: int = Field(..., alias="creditLimit")
-    masked_pan: List[str] = Field(default_factory=list, alias="maskedPan")
+    masked_pan: list[str] = Field(default_factory=list, alias="maskedPan")
     type: str
     iban: IBAN
 
@@ -122,7 +121,7 @@ class Jar(BaseModel):
     description: str
     currency_code: Currency = Field(..., alias="currencyCode")
     balance: int
-    goal: Optional[int] = None
+    goal: int | None = None
 
     @field_validator("currency_code", mode="before")
     @classmethod
@@ -180,7 +179,7 @@ class MonobankManagedClient(BaseModel):
     # with passport details instead -- rather than failing the whole response.
     tin: IPN | str
     name: str
-    accounts: List[MonobankManagedAccount]
+    accounts: list[MonobankManagedAccount]
 
     @field_validator("tin", mode="before")
     @classmethod
@@ -207,9 +206,9 @@ class MonobankClientResponse(BaseModel):
     name: str
     web_hook_url: str = Field(..., alias="webHookUrl")
     permissions: str
-    accounts: List[MonobankAccount]
-    jars: List[Jar] = Field(default_factory=list)
-    managed_clients: List[MonobankManagedClient] = Field(
+    accounts: list[MonobankAccount]
+    jars: list[Jar] = Field(default_factory=list)
+    managed_clients: list[MonobankManagedClient] = Field(
         default_factory=list,
         alias="managedClients",
     )
@@ -222,7 +221,7 @@ class MonobankTransaction(BaseModel):
     id: str
     time: datetime
     description: str
-    comment: Optional[str] = None
+    comment: str | None = None
     mcc: int
     original_mcc: int = Field(..., alias="originalMcc")
     amount: int
@@ -232,11 +231,11 @@ class MonobankTransaction(BaseModel):
     cashback_amount: int = Field(..., alias="cashbackAmount")
     balance: int
     hold: bool
-    receipt_id: Optional[str] = Field(None, alias="receiptId")
-    invoice_id: Optional[str] = Field(None, alias="invoiceId")
-    counter_edrpou: Optional[str] = Field(None, alias="counterEdrpou")
-    counter_iban: Optional[str] = Field(None, alias="counterIban")
-    counter_name: Optional[str] = Field(None, alias="counterName")
+    receipt_id: str | None = Field(None, alias="receiptId")
+    invoice_id: str | None = Field(None, alias="invoiceId")
+    counter_edrpou: str | None = Field(None, alias="counterEdrpou")
+    counter_iban: str | None = Field(None, alias="counterIban")
+    counter_name: str | None = Field(None, alias="counterName")
 
     @field_validator("currency_code", mode="before")
     @classmethod

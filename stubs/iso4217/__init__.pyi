@@ -12,25 +12,19 @@
 
 import datetime
 import enum
+from collections.abc import Callable, Generator, Mapping
 from typing import (
     AbstractSet,
     Any,
-    Callable,
-    Generator,
-    Mapping,
-    Optional,
-    Tuple,
-    Union,
 )
 from xml.etree import ElementTree as etree
 
-
 __published__: datetime.date = ...
 __version__: str = ...
-__version_info__: Tuple[int, int, int] = ...
+__version_info__: tuple[int, int, int] = ...
 
 raw_xml: etree.Element
-raw_table: Mapping[str, Mapping[str, Union[AbstractSet[str], str, int]]] = ...
+raw_table: Mapping[str, Mapping[str, AbstractSet[str] | str | int]] = ...
 
 
 class Currency(enum.Enum):
@@ -214,11 +208,11 @@ class Currency(enum.Enum):
     XAG: Currency
 
     @classmethod
-    def _validate(cls, value: Any) -> "Currency": ...
+    def _validate(cls, value: Any) -> Currency: ...
 
     # Pydantic v1 support
     @classmethod
-    def __get_validators__(cls) -> Generator[Callable[..., Any], None, None]: ...
+    def __get_validators__(cls) -> Generator[Callable[..., Any]]: ...
 
     # Pydantic v2 support
     @classmethod
@@ -239,4 +233,4 @@ class Currency(enum.Enum):
     def country_names(self) -> AbstractSet[str]: ...
 
     @property
-    def exponent(self) -> Optional[int]: ...
+    def exponent(self) -> int | None: ...

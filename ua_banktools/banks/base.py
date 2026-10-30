@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Optional, Type, TypeVar
+from typing import TypeVar
 
 import httpx
 from pydantic import BaseModel, ValidationError
@@ -39,14 +39,14 @@ class BankTransportError(RuntimeError):
         )
 
 
-def build_session(session: Optional[httpx.Client] = None) -> httpx.Client:
+def build_session(session: httpx.Client | None = None) -> httpx.Client:
     """Return the caller's session, or a default one with a bounded timeout."""
     if session is not None:
         return session
     return httpx.Client(follow_redirects=True, timeout=DEFAULT_TIMEOUT)
 
 
-def parse_error(response: httpx.Response, model: Type[ErrorModel]) -> ErrorModel:
+def parse_error(response: httpx.Response, model: type[ErrorModel]) -> ErrorModel:
     """Parse an error response as the bank's own error model.
 
     Raises :class:`BankTransportError` when the body is not JSON or does not
@@ -83,7 +83,7 @@ class BaseCorporateClient:
         self,
         token: str,
         client_id: str = "",
-        session: Optional[httpx.Client] = None,
+        session: httpx.Client | None = None,
     ) -> None:
         self.token = token
         self.client_id = client_id

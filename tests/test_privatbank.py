@@ -3,8 +3,8 @@ from decimal import Decimal
 from unittest import TestCase
 from unittest.mock import MagicMock
 
-from schwifty import IBAN
 from pydantic import ValidationError
+from schwifty import IBAN
 
 from ua_banktools.banks.privatbank.privatbank import PBCorporateClient
 from ua_banktools.banks.privatbank.public import ExchangeRateType, PBPublicClient

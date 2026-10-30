@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
-from typing import List, Optional, cast
+from typing import cast
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 from schwifty import IBAN
@@ -57,18 +57,18 @@ class StatementParams(BaseModel):
         arbitrary_types_allowed=True,
     )
 
-    acct: Optional[IBAN] = Field(None, serialization_alias="acc")
+    acct: IBAN | None = Field(None, serialization_alias="acc")
     start_date: date = Field(serialization_alias="startDate")
-    end_date: Optional[date] = Field(None, serialization_alias="endDate")
-    follow_id: Optional[str] = Field(None, serialization_alias="followId")
-    limit: Optional[int] = Field(None, ge=1, le=500)
+    end_date: date | None = Field(None, serialization_alias="endDate")
+    follow_id: str | None = Field(None, serialization_alias="followId")
+    limit: int | None = Field(None, ge=1, le=500)
 
     @field_serializer("acct")
-    def serialize_account(self, value: Optional[IBAN]) -> Optional[str]:
+    def serialize_account(self, value: IBAN | None) -> str | None:
         return str(value) if value is not None else None
 
     @field_serializer("start_date", "end_date")
-    def serialize_date(self, value: Optional[date]) -> Optional[str]:
+    def serialize_date(self, value: date | None) -> str | None:
         return value.strftime("%d-%m-%Y") if value is not None else None
 
     def to_query_params(self) -> dict[str, str | int]:
@@ -90,8 +90,8 @@ class HistoricalExchangeRate(BaseModel):
     currency: str
     sale_rate_nbu: Decimal = Field(alias="saleRateNB")
     purchase_rate_nbu: Decimal = Field(alias="purchaseRateNB")
-    sale_rate: Optional[Decimal] = Field(None, alias="saleRate")
-    purchase_rate: Optional[Decimal] = Field(None, alias="purchaseRate")
+    sale_rate: Decimal | None = Field(None, alias="saleRate")
+    purchase_rate: Decimal | None = Field(None, alias="purchaseRate")
 
 
 class HistoricalExchangeRatesResponse(BaseModel):
@@ -99,7 +99,7 @@ class HistoricalExchangeRatesResponse(BaseModel):
     bank: str
     base_currency: int = Field(alias="baseCurrency")
     base_currency_code: str = Field(alias="baseCurrencyLit")
-    exchange_rates: List[HistoricalExchangeRate] = Field(alias="exchangeRate")
+    exchange_rates: list[HistoricalExchangeRate] = Field(alias="exchangeRate")
 
     @field_validator("date", mode="before")
     @classmethod
@@ -137,8 +137,8 @@ class BalanceResponse(BaseModel):
     status: ResponseStatus
     type: ResponseType
     exist_next_page: bool
-    next_page_id: Optional[str] = None
-    balances: List[BalanceItem]
+    next_page_id: str | None = None
+    balances: list[BalanceItem]
 
 
 class TransactionItem(BaseModel):
@@ -170,36 +170,36 @@ class TransactionItem(BaseModel):
     DATE_TIME_DAT_OD_TIM_P: str  # Transaction DateTime
     ID: str  # Transaction ID
     TRANTYPE: TransactionType  # Transaction Type {D|C} - debit/credit
-    DLR: Optional[str] = None  # 3rd party transaction identifier
+    DLR: str | None = None  # 3rd party transaction identifier
     TECHNICAL_TRANSACTION_ID: str
-    UETR: Optional[str] = None
-    ULTMT: Optional[str] = None
-    PAYER_ULTMT_NCEO: Optional[str] = None
-    PAYER_ULTMT_DOCUMENT: Optional[str] = None
-    PAYER_ULTMT_NAME: Optional[str] = None
-    PAYER_ULTMT_COUNTRY_CODE: Optional[str] = None
-    RECIPIENT_ULTMT_NCEO: Optional[str] = None
-    RECIPIENT_ULTMT_DOCUMENT: Optional[str] = None
-    RECIPIENT_ULTMT_NAME: Optional[str] = None
-    RECIPIENT_ULTMT_COUNTRY_CODE: Optional[str] = None
-    STRUCT_CODE: Optional[str] = None  # Tax payment type code
-    STRUCT_TYPE: Optional[str] = None  # Budget classification code
-    STRUCT_CATEGORY: Optional[str] = None  # Tax notice (decision) details
+    UETR: str | None = None
+    ULTMT: str | None = None
+    PAYER_ULTMT_NCEO: str | None = None
+    PAYER_ULTMT_DOCUMENT: str | None = None
+    PAYER_ULTMT_NAME: str | None = None
+    PAYER_ULTMT_COUNTRY_CODE: str | None = None
+    RECIPIENT_ULTMT_NCEO: str | None = None
+    RECIPIENT_ULTMT_DOCUMENT: str | None = None
+    RECIPIENT_ULTMT_NAME: str | None = None
+    RECIPIENT_ULTMT_COUNTRY_CODE: str | None = None
+    STRUCT_CODE: str | None = None  # Tax payment type code
+    STRUCT_TYPE: str | None = None  # Budget classification code
+    STRUCT_CATEGORY: str | None = None  # Tax notice (decision) details
 
 
 class TransactionsResponse(BaseModel):
     status: ResponseStatus
     type: ResponseType
     exist_next_page: bool
-    next_page_id: Optional[str] = None
-    transactions: List[TransactionItem]
+    next_page_id: str | None = None
+    transactions: list[TransactionItem]
 
 
 class TransactionSignLevel(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    first_sign_level: Optional[bool] = Field(None, alias="1_sign_level")
-    second_sign_level: Optional[bool] = Field(None, alias="2_sign_level")
+    first_sign_level: bool | None = Field(None, alias="1_sign_level")
+    second_sign_level: bool | None = Field(None, alias="2_sign_level")
 
 
 class PaymentCreateRequest(BaseModel):
@@ -214,7 +214,7 @@ class PaymentCreateRequest(BaseModel):
 
 class PaymentData(BaseModel):
     can_edit: str
-    can_copy: Optional[str]
+    can_copy: str | None
     document_number: str
     document_type: str
     id: str
@@ -236,7 +236,7 @@ class PaymentData(BaseModel):
     recipient_nceo: str
     service_update_utime: str
     source: str
-    tabs: List[str]
+    tabs: list[str]
     user_id: str
 
 
@@ -250,4 +250,4 @@ class PrivatbankErrorResponse(BaseModel):
     code: str
     message: str
     requestId: str
-    serviceCode: Optional[str] = None
+    serviceCode: str | None = None

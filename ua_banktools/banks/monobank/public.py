@@ -1,4 +1,3 @@
-from typing import Optional
 
 import httpx
 from pydantic import ValidationError
@@ -23,7 +22,7 @@ class MonobankPublicClient:
     def __init__(
         self,
         base_url: str = BASE_URL,
-        session: Optional[httpx.Client] = None,
+        session: httpx.Client | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/") + "/"
         self.session = build_session(session)

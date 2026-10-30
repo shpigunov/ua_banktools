@@ -1,6 +1,5 @@
 from iso4217 import Currency
 
-
 _CURRENCIES_BY_NUMBER = {currency.number: currency for currency in Currency}
 _CURRENCIES_BY_CODE = {currency.code: currency for currency in Currency}
 
